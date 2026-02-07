@@ -1,9 +1,17 @@
-import { useMemo, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { useEffect, useMemo, useState } from "react";
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+  CircleMarker,
+} from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import { createSignal } from "../services/signals";
 import { saveLocalPhoto } from "../services/localPhotos";
 import { useAuth } from "../services/useAuth";
+import { useGeolocation } from "../services/useGeolocation";
 import {
   AFFECTED_GROUPS,
   CATEGORIES,
@@ -14,30 +22,108 @@ import {
 
 const DEFAULT_CENTER: [number, number] = [6.9271, 79.8612];
 
+function MapAutoCenter({
+  enabled,
+  lat,
+  lng,
+  zoom = 16,
+}: {
+  enabled: boolean;
+  lat: number | null;
+  lng: number | null;
+  zoom?: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (lat == null || lng == null) return;
+    // DEBUG
+    // eslint-disable-next-line no-console
+    console.log("[MapAutoCenter] setView ->", { lat, lng, zoom });
+    map.setView([lat, lng], zoom, { animate: true });
+  }, [enabled, lat, lng, zoom, map]);
+
+  return null;
+}
+
 function LocationPicker({
   value,
   onChange,
+  myLocation,
+  followMe,
+  accuracy,
 }: {
   value: { lat: number; lng: number } | null;
   onChange: (v: { lat: number; lng: number }) => void;
+  myLocation: { lat: number | null; lng: number | null };
+  followMe: boolean;
+  accuracy: number | null;
 }) {
   function ClickHandler() {
     useMapEvents({
       click(e) {
+        // DEBUG
+        // eslint-disable-next-line no-console
+        console.log("[LocationPicker] map click ->", e.latlng);
         onChange({ lat: e.latlng.lat, lng: e.latlng.lng });
       },
     });
     return null;
   }
 
+  const center: [number, number] =
+    value
+      ? [value.lat, value.lng]
+      : myLocation.lat != null && myLocation.lng != null
+        ? [myLocation.lat, myLocation.lng]
+        : DEFAULT_CENTER;
+
   return (
-    <div style={{ height: 340, border: "1px solid #eee", borderRadius: 10, overflow: "hidden" }}>
-      <MapContainer center={value ? [value.lat, value.lng] : DEFAULT_CENTER} zoom={13} style={{ height: "100%", width: "100%" }}>
+    <div style={{ height: 360, border: "1px solid #eee", borderRadius: 10, overflow: "hidden" }}>
+      <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
+          attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {/* Follow/center on realtime location */}
+        <MapAutoCenter enabled={followMe} lat={myLocation.lat} lng={myLocation.lng} zoom={16} />
+
         <ClickHandler />
+
+        {/* DEBUG: show location even if not following */}
+        {myLocation.lat != null && myLocation.lng != null && (
+          <>
+            {/* Accuracy halo (bigger + visible for debugging) */}
+            {accuracy != null && (
+              <CircleMarker
+                center={[myLocation.lat, myLocation.lng]}
+                radius={Math.min(Math.max(accuracy / 6, 18), 60)} // visible halo
+                pathOptions={{
+                  color: "blue",
+                  fillColor: "blue",
+                  fillOpacity: 0.15,
+                  weight: 1,
+                }}
+              />
+            )}
+
+            {/* 🔵 Blue dot (big + solid for debugging) */}
+            <CircleMarker
+              center={[myLocation.lat, myLocation.lng]}
+              radius={14}
+              pathOptions={{
+                color: "blue",
+                fillColor: "blue",
+                fillOpacity: 1,
+                weight: 2,
+              }}
+            />
+          </>
+        )}
+
+        {/* 📍 User-selected pin */}
         {value && <Marker position={[value.lat, value.lng]} />}
       </MapContainer>
     </div>
@@ -47,6 +133,16 @@ function LocationPicker({
 export default function NewSignalPage() {
   const { user } = useAuth();
   const nav = useNavigate();
+
+  // follow controls only centering — we ALWAYS watch geolocation so dot can show
+  const [followMe, setFollowMe] = useState(true);
+  const geo = useGeolocation(true);
+
+  // DEBUG: log geolocation changes
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("[Geo] state ->", geo);
+  }, [geo.ok, geo.lat, geo.lng, geo.accuracy, geo.error, geo.watching]);
 
   const [category, setCategory] = useState<Category>("waste");
   const [affectedGroups, setAffectedGroups] = useState<AffectedGroup[]>([]);
@@ -90,15 +186,23 @@ export default function NewSignalPage() {
         createdBy: user.uid,
       };
 
-      // 1) Write Firestore (no photo bytes)
+      // DEBUG
+      // eslint-disable-next-line no-console
+      console.log("[Submit] creating signal ->", input);
+
       const signalId = await createSignal(input);
 
-      // 2) Save photo locally (IndexedDB), keyed by signalId
+      // DEBUG
+      // eslint-disable-next-line no-console
+      console.log("[Submit] created signalId ->", signalId);
+
       if (photoFile) {
         await saveLocalPhoto(signalId, photoFile);
+        // DEBUG
+        // eslint-disable-next-line no-console
+        console.log("[Submit] saved local photo for ->", signalId);
       }
 
-      // 3) Navigate to detail
       nav(`/signal/${signalId}`);
     } catch (err) {
       setError((err as Error)?.message ?? "Failed to create signal");
@@ -110,6 +214,18 @@ export default function NewSignalPage() {
   return (
     <div style={{ padding: 16, maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
       <h2>New Signal</h2>
+
+      {/* DEBUG panel */}
+      <div style={{ padding: 10, border: "1px dashed #ddd", borderRadius: 10, fontSize: 12, background: "#fafafa" }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Debug</div>
+        <div>followMe: {String(followMe)}</div>
+        <div>geo.ok: {String(geo.ok)}</div>
+        <div>
+          geo.lat/lng: {geo.lat ?? "null"}, {geo.lng ?? "null"}
+        </div>
+        <div>geo.accuracy: {geo.accuracy ?? "null"}</div>
+        <div>geo.error: {geo.error ?? "null"}</div>
+      </div>
 
       <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <label>
@@ -159,7 +275,28 @@ export default function NewSignalPage() {
 
         <div>
           <div style={{ marginBottom: 6 }}>Location (click map to drop pin)</div>
-          <LocationPicker value={location} onChange={setLocation} />
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+            <button type="button" onClick={() => setFollowMe(true)} style={{ padding: "6px 10px" }}>
+              Follow my location
+            </button>
+            <button type="button" onClick={() => setFollowMe(false)} style={{ padding: "6px 10px" }}>
+              Stop following
+            </button>
+            {geo.error && <span style={{ color: "crimson", fontSize: 12 }}>{geo.error}</span>}
+          </div>
+
+          <LocationPicker
+            value={location}
+            onChange={(v) => {
+              setLocation(v);
+              setFollowMe(false); // stop auto-centering after user pins
+            }}
+            followMe={followMe}
+            myLocation={{ lat: geo.lat, lng: geo.lng }}
+            accuracy={geo.accuracy}
+          />
+
           <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
             {location ? `Pinned at (${location.lat.toFixed(5)}, ${location.lng.toFixed(5)})` : "No pin yet."}
           </div>
