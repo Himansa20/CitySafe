@@ -98,18 +98,18 @@ export default function ProximityMonitor() {
     return (
         <div style={{
             position: "fixed",
-            bottom: "20px",
-            left: "20px",
-            right: "20px",
-            zIndex: 9999,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 9998,
             backgroundColor: "white",
             borderRadius: theme.rounded.lg,
             boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
             border: `2px solid ${theme.colors.status.danger}`,
             overflow: "hidden",
-            animation: "slideUp 0.3s ease-out",
+            animation: "fadeIn 0.3s ease-out",
             maxWidth: "500px",
-            margin: "0 auto",
+            width: "calc(100% - 40px)",
         }}>
             {/* Alert Header */}
             <div style={{
@@ -250,7 +250,7 @@ export default function ProximityMonitor() {
             </div>
 
             <style>{`
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
       `}</style>
         </div >

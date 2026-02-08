@@ -194,19 +194,23 @@ export default function SOSButton() {
                 </span>
             </button>
 
-            {/* Modal Overlay */}
             {modalState !== "closed" && (
                 <div
                     style={{
                         position: "fixed",
-                        inset: 0,
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: "100vw",
+                        height: "100vh",
                         backgroundColor: "rgba(0, 0, 0, 0.6)",
                         backdropFilter: "blur(4px)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        zIndex: 9999,
-                        padding: "1rem",
+                        zIndex: 99999,
+                        overflow: "hidden",
                     }}
                     onClick={closeModal}
                 >
@@ -214,7 +218,9 @@ export default function SOSButton() {
                         style={{
                             ...theme.card,
                             maxWidth: "400px",
-                            width: "100%",
+                            width: "calc(100% - 2rem)",
+                            maxHeight: "calc(100vh - 4rem)",
+                            overflowY: "auto",
                             padding: "1.5rem",
                             animation: "slideUp 0.2s ease-out",
                         }}

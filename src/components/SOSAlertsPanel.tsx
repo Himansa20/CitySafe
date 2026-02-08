@@ -252,7 +252,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        zIndex: 9999,
+                        zIndex: 9998,
                         padding: "1rem",
                     }}
                     onClick={() => setMapAlert(null)}
