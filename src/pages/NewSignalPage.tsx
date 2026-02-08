@@ -20,6 +20,7 @@ import {
   type NewSignalInput,
 } from "../types/signal";
 import { theme } from "../theme";
+import { haversineDistance, formatDistance, REPORTING_RADIUS_METERS } from "../utils/geo";
 
 const DEFAULT_CENTER: [number, number] = [6.9271, 79.8612];
 
@@ -155,9 +156,17 @@ export default function NewSignalPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Calculate distance from user's location
+  const distanceFromUser = useMemo(() => {
+    if (geo.lat === null || geo.lng === null || !location) return null;
+    return haversineDistance(geo.lat, geo.lng, location.lat, location.lng);
+  }, [geo.lat, geo.lng, location]);
+
+  const isTooFar = distanceFromUser !== null && distanceFromUser > REPORTING_RADIUS_METERS;
+
   const canSubmit = useMemo(() => {
-    return !!user && description.trim().length >= 5 && !!location && severity >= 1 && severity <= 5;
-  }, [user, description, location, severity]);
+    return !!user && description.trim().length >= 5 && !!location && severity >= 1 && severity <= 5 && !isTooFar;
+  }, [user, description, location, severity, isTooFar]);
 
   function toggleGroup(g: AffectedGroup) {
     setAffectedGroups((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
@@ -168,6 +177,10 @@ export default function NewSignalPage() {
     if (!user) return;
     if (!location) {
       setError("Please select a location on the map.");
+      return;
+    }
+    if (isTooFar) {
+      setError(`Location must be within ${formatDistance(REPORTING_RADIUS_METERS)} of your current position.`);
       return;
     }
 

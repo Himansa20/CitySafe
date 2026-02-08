@@ -1,20 +1,59 @@
 import { useEffect, useState } from "react";
 import { confirmSignal, hasConfirmed } from "../services/confirmations";
 import { useAuth } from "../services/useAuth";
+import { useGeolocation } from "../services/useGeolocation";
 import { theme } from "../theme";
+import {
+  haversineDistance,
+  formatDistance,
+  CONFIRMATION_RADIUS_METERS,
+} from "../utils/geo";
+
+type ProximityStatus = "checking" | "within_range" | "too_far" | "no_location";
 
 export default function ConfirmButton({
   signalId,
+  signalLat,
+  signalLng,
   compact = false,
 }: {
   signalId: string;
+  signalLat: number;
+  signalLng: number;
   compact?: boolean;
 }) {
   const { user, loading } = useAuth();
+  const geo = useGeolocation(true);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Calculate proximity
+  const [proximityStatus, setProximityStatus] = useState<ProximityStatus>("checking");
+  const [distance, setDistance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (geo.lat === null || geo.lng === null) {
+      if (geo.error) {
+        setProximityStatus("no_location");
+      } else {
+        setProximityStatus("checking");
+      }
+      setDistance(null);
+      return;
+    }
+
+    const dist = haversineDistance(geo.lat, geo.lng, signalLat, signalLng);
+    setDistance(dist);
+
+    if (dist <= CONFIRMATION_RADIUS_METERS) {
+      setProximityStatus("within_range");
+    } else {
+      setProximityStatus("too_far");
+    }
+  }, [geo.lat, geo.lng, geo.error, signalLat, signalLng]);
+
+  // Check if already confirmed
   useEffect(() => {
     let cancelled = false;
     async function run() {
@@ -37,6 +76,17 @@ export default function ConfirmButton({
       setErr("Sign in needed");
       return;
     }
+
+    if (proximityStatus === "too_far") {
+      setErr(`Must be within ${formatDistance(CONFIRMATION_RADIUS_METERS)} to confirm`);
+      return;
+    }
+
+    if (proximityStatus === "no_location") {
+      setErr("Location access required");
+      return;
+    }
+
     setBusy(true);
     setErr(null);
     try {
@@ -52,7 +102,43 @@ export default function ConfirmButton({
     }
   }
 
-  const disabled = loading || busy || confirmed;
+  const canConfirm = proximityStatus === "within_range" && !confirmed;
+  const disabled = loading || busy || confirmed || !canConfirm;
+
+  // Determine button appearance
+  let buttonStyle = { ...theme.button.base, ...theme.button.primary };
+  let buttonText = "👍 Confirm";
+
+  if (confirmed) {
+    buttonStyle = {
+      ...theme.button.base,
+      ...theme.button.secondary,
+      backgroundColor: theme.colors.status.success,
+      color: "#fff",
+      border: "none",
+    };
+    buttonText = "✓ Confirmed";
+  } else if (proximityStatus === "too_far") {
+    buttonStyle = {
+      ...theme.button.base,
+      ...theme.button.ghost,
+      backgroundColor: "#f0f0f0",
+      cursor: "not-allowed",
+    };
+    buttonText = "📍 Too far to confirm";
+  } else if (proximityStatus === "checking") {
+    buttonText = "📍 Getting location...";
+  } else if (proximityStatus === "no_location") {
+    buttonStyle = {
+      ...theme.button.base,
+      ...theme.button.ghost,
+      backgroundColor: "#fff3cd",
+      cursor: "not-allowed",
+    };
+    buttonText = "📍 Location required";
+  } else if (busy) {
+    buttonText = "...";
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
@@ -61,20 +147,38 @@ export default function ConfirmButton({
         onClick={onConfirm}
         disabled={disabled}
         style={{
-          ...theme.button.base,
-          ...(confirmed ? theme.button.secondary : theme.button.primary),
-          backgroundColor: confirmed ? theme.colors.status.success : undefined,
-          color: confirmed ? "#fff" : undefined,
-          border: confirmed ? "none" : undefined,
+          ...buttonStyle,
           padding: compact ? "0.4rem 0.8rem" : "0.6rem 1rem",
           opacity: disabled && !confirmed ? 0.7 : 1,
           width: "100%",
           fontSize: compact ? theme.typography.sizes.xs : theme.typography.sizes.sm,
         }}
       >
-        {confirmed ? "✓ Confirmed" : busy ? "..." : "👍 Confirm"}
+        {buttonText}
       </button>
-      {err && <div style={{ color: theme.colors.status.danger, fontSize: theme.typography.sizes.xs }}>{err}</div>}
+
+      {/* Distance indicator */}
+      {distance !== null && !confirmed && (
+        <div
+          style={{
+            fontSize: theme.typography.sizes.xs,
+            color: proximityStatus === "within_range"
+              ? theme.colors.status.success
+              : theme.colors.text.secondary,
+            textAlign: "center",
+          }}
+        >
+          {proximityStatus === "within_range"
+            ? `✓ ${formatDistance(distance)} away - close enough`
+            : `${formatDistance(distance)} away (max ${formatDistance(CONFIRMATION_RADIUS_METERS)})`}
+        </div>
+      )}
+
+      {err && (
+        <div style={{ color: theme.colors.status.danger, fontSize: theme.typography.sizes.xs }}>
+          {err}
+        </div>
+      )}
     </div>
   );
 }

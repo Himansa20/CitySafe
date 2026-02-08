@@ -1,4 +1,4 @@
-import type { Timestamp } from "firebase/firestore";
+// Area summary types
 
 export type FocusCategory = "waste" | "transport";
 

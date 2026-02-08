@@ -6,6 +6,9 @@ import { useEffect, useState } from "react";
 import { getUserRole } from "../services/users";
 import type { UserRole } from "../types/admin";
 import { theme } from "../theme";
+import NotificationBell from "./NotificationBell";
+import NavDropdown from "./NavDropdown";
+import SOSButton from "./SOSButton";
 
 export default function TopBar() {
   const { user, loading } = useAuth();
@@ -30,8 +33,26 @@ export default function TopBar() {
     color: loc.pathname === path ? theme.colors.primary : theme.colors.text.secondary,
     fontWeight: loc.pathname === path ? 600 : 500,
     fontSize: theme.typography.sizes.sm,
-    transition: "color 0.2s",
+    padding: "0.5rem",
+    borderRadius: theme.rounded.md,
+    transition: "all 0.2s",
   });
+
+  const isAdmin = role === "ngo" || role === "admin";
+
+  // Services dropdown items
+  const servicesItems = [
+    { label: "Waste Collection", path: "/waste", icon: "🗑️", description: "View collection schedules" },
+    { label: "Night Safety", path: "/night-safety", icon: "🌙", description: "Safe walking routes" },
+    { label: "Help Requests", path: "/help", icon: "🤝", description: "Community assistance" },
+  ];
+
+  // Admin dropdown items
+  const adminItems = [
+    { label: "Dashboard", path: "/dashboard", icon: "📊", description: "Priority queue & actions" },
+    { label: "Waste Zones", path: "/waste-admin", icon: "🗑️", description: "Zones & schedules" },
+    { label: "Night Safety Routes", path: "/night-safety-admin", icon: "🛡️", description: "Safe & unsafe corridors" },
+  ];
 
   return (
     <div
@@ -39,7 +60,7 @@ export default function TopBar() {
         display: "flex",
         alignItems: "center",
         padding: "0.75rem 1.5rem",
-        backgroundColor: "rgba(255, 255, 255, 0.9)",
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
         backdropFilter: "blur(8px)",
         borderBottom: `1px solid ${theme.colors.border}`,
         position: "sticky",
@@ -48,7 +69,8 @@ export default function TopBar() {
         boxShadow: theme.shadows.sm,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "2rem", flex: 1 }}>
+      {/* Left: Logo + Navigation */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flex: 1 }}>
         <Link
           to="/"
           style={{
@@ -65,76 +87,102 @@ export default function TopBar() {
           <span style={{ fontSize: "1.5rem" }}>🏙️</span> CitySignal
         </Link>
 
-        <div style={{ display: "flex", gap: "1.5rem" }}>
-          <Link to="/help" style={navLinkStyle("/help")}>Help Requests</Link>
-          <Link to="/night-safety" style={navLinkStyle("/night-safety")}>Night Safety</Link>
-        </div>
+        {/* Primary Navigation */}
+        <nav style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <Link to="/" style={navLinkStyle("/")}>
+            Signals
+          </Link>
+
+          <NavDropdown label="Services" items={servicesItems} icon="🛠️" />
+
+          {user && (
+            <Link to="/my-area" style={navLinkStyle("/my-area")}>
+              📍 My Area
+            </Link>
+          )}
+        </nav>
       </div>
 
-      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+      {/* Right: Actions */}
+      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+        {/* SOS Button - Always visible for logged in users */}
+        {!loading && user && <SOSButton />}
+
+        {!loading && user && <NotificationBell />}
+
         {!loading && user ? (
           <>
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              lineHeight: 1.2
-            }}>
-              <span style={{ fontSize: theme.typography.sizes.xs, color: theme.colors.text.secondary }}>
+            {/* User Info */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                lineHeight: 1.2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: theme.typography.sizes.xs,
+                  color: theme.colors.text.secondary,
+                  maxWidth: "120px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {user.email}
               </span>
-              <span style={{
-                fontSize: "0.65rem",
-                textTransform: "uppercase",
-                fontWeight: 700,
-                color: theme.colors.primary,
-                backgroundColor: "#e0e7ff",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                marginTop: "2px"
-              }}>
+              <span
+                style={{
+                  fontSize: "0.65rem",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                  color: isAdmin ? theme.colors.status.info : theme.colors.primary,
+                  backgroundColor: isAdmin ? "#e0f2fe" : "#e0e7ff",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  marginTop: "2px",
+                }}
+              >
                 {role}
               </span>
             </div>
 
+            {/* New Signal Button */}
             <Link
               to="/new"
               style={{
                 ...theme.button.base,
                 ...theme.button.primary,
-                padding: "0.4rem 0.8rem",
+                padding: "0.5rem 1rem",
                 fontSize: theme.typography.sizes.sm,
-                textDecoration: "none"
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
               }}
             >
-              + New Signal
+              <span>+</span> Report Issue
             </Link>
 
-            {(role === "ngo" || role === "admin") && (
-              <Link
-                to="/admin"
-                style={{
-                  ...theme.button.base,
-                  ...theme.button.secondary,
-                  padding: "0.4rem 0.8rem",
-                  fontSize: theme.typography.sizes.sm,
-                  textDecoration: "none"
-                }}
-              >
-                Dashboard
-              </Link>
+            {/* Admin Console */}
+            {isAdmin && (
+              <NavDropdown label="Admin" items={adminItems} icon="⚙️" />
             )}
 
+            {/* Sign Out */}
             <button
               onClick={() => signOut(auth)}
               style={{
                 ...theme.button.base,
                 ...theme.button.ghost,
-                padding: "0.4rem",
+                padding: "0.4rem 0.6rem",
                 fontSize: theme.typography.sizes.sm,
               }}
+              title="Sign out"
             >
-              Sign out
+              🚪
             </button>
           </>
         ) : (
@@ -143,7 +191,7 @@ export default function TopBar() {
             style={{
               ...theme.button.base,
               ...theme.button.primary,
-              textDecoration: "none"
+              textDecoration: "none",
             }}
           >
             Login

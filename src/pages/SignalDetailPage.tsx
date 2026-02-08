@@ -212,7 +212,7 @@ export default function SignalDetailPage() {
           </div>
 
           <div style={{ minWidth: "200px" }}>
-            <ConfirmButton signalId={signal.id} />
+            <ConfirmButton signalId={signal.id} signalLat={signal.lat} signalLng={signal.lng} />
           </div>
         </div>
 
