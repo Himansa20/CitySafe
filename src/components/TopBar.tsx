@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getUserRole } from "../services/users";
 import type { UserRole } from "../types/admin";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 import NotificationBell from "./NotificationBell";
 import NavDropdown from "./NavDropdown";
 import SOSButton from "./SOSButton";
@@ -42,16 +43,16 @@ export default function TopBar() {
 
   // Services dropdown items
   const servicesItems = [
-    { label: "Waste Collection", path: "/waste", icon: "🗑️", description: "View collection schedules" },
-    { label: "Night Safety", path: "/night-safety", icon: "🌙", description: "Safe walking routes" },
-    { label: "Help Requests", path: "/help", icon: "🤝", description: "Community assistance" },
+    { label: "Waste Collection", path: "/waste", iconComponent: <Icon icon={Icons.wasteAlt} size="1rem" />, description: "View collection schedules" },
+    { label: "Night Safety", path: "/night-safety", iconComponent: <Icon icon={Icons.moon} size="1rem" />, description: "Safe walking routes" },
+    { label: "Help Requests", path: "/help", iconComponent: <Icon icon={Icons.handshake} size="1rem" />, description: "Community assistance" },
   ];
 
   // Admin dropdown items
   const adminItems = [
-    { label: "Dashboard", path: "/dashboard", icon: "📊", description: "Priority queue & actions" },
-    { label: "Waste Zones", path: "/waste-admin", icon: "🗑️", description: "Zones & schedules" },
-    { label: "Night Safety Routes", path: "/night-safety-admin", icon: "🛡️", description: "Safe & unsafe corridors" },
+    { label: "Dashboard", path: "/dashboard", iconComponent: <Icon icon={Icons.chart} size="1rem" />, description: "Priority queue & actions" },
+    { label: "Waste Zones", path: "/waste-admin", iconComponent: <Icon icon={Icons.wasteAlt} size="1rem" />, description: "Zones & schedules" },
+    { label: "Night Safety Routes", path: "/night-safety-admin", iconComponent: <Icon icon={Icons.shieldHalved} size="1rem" />, description: "Safe & unsafe corridors" },
   ];
 
   return (
@@ -84,7 +85,7 @@ export default function TopBar() {
             gap: "0.5rem",
           }}
         >
-          <span style={{ fontSize: "1.5rem" }}>🏙️</span> CitySignal
+          <span style={{ fontSize: "1.25rem", display: "flex", alignItems: "center" }}><Icon icon={Icons.city} size="1.25rem" color={theme.colors.primary} /></span> CitySignal
         </Link>
 
         {/* Primary Navigation */}
@@ -93,11 +94,11 @@ export default function TopBar() {
             Signals
           </Link>
 
-          <NavDropdown label="Services" items={servicesItems} icon="🛠️" />
+          <NavDropdown label="Services" items={servicesItems} iconComponent={<Icon icon={Icons.wrench} size="0.875rem" />} />
 
           {user && (
             <Link to="/my-area" style={navLinkStyle("/my-area")}>
-              📍 My Area
+              <Icon icon={Icons.location} size="0.875rem" /> My Area
             </Link>
           )}
         </nav>
@@ -168,7 +169,7 @@ export default function TopBar() {
 
             {/* Admin Console */}
             {isAdmin && (
-              <NavDropdown label="Admin" items={adminItems} icon="⚙️" />
+              <NavDropdown label="Admin" items={adminItems} iconComponent={<Icon icon={Icons.gear} size="0.875rem" />} />
             )}
 
             {/* Sign Out */}
@@ -182,7 +183,7 @@ export default function TopBar() {
               }}
               title="Sign out"
             >
-              🚪
+              <Icon icon={Icons.signOut} size="0.875rem" />
             </button>
           </>
         ) : (

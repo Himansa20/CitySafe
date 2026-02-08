@@ -3,6 +3,7 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { subscribeHelpRequests, pledgeHelp, hasPledged } from "../services/help";
 import { useAuth } from "../services/useAuth";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 
 const DEFAULT_CENTER: [number, number] = [6.9271, 79.8612];
 
@@ -179,7 +180,7 @@ export default function HelpPage() {
 
             {filtered.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem", color: theme.colors.text.secondary }}>
-                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🙌</div>
+                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}><Icon icon={Icons.handshake} size="2rem" color={theme.colors.text.secondary} /></div>
                 No matching help requests found.
               </div>
             ) : (
@@ -213,7 +214,7 @@ export default function HelpPage() {
                       fontSize: theme.typography.sizes.sm
                     }}
                   >
-                    {pledged[r.id] ? "✓ You Pledged" : busy === r.id ? "Pledging..." : "Pledge Support"}
+                    {pledged[r.id] ? <><Icon icon={Icons.check} size="0.75rem" /> You Pledged</> : busy === r.id ? "Pledging..." : "Pledge Support"}
                   </button>
                 </div>
               ))

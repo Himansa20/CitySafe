@@ -5,7 +5,8 @@ import { subscribeSignalsV2 } from "../services/signals";
 import { fetchUrbanInfrastructure, getAreaInsight, type UrbanPOI, type AreaInsight } from "../services/urbanInsights";
 import type { Signal } from "../types/signal";
 import { haversineDistance } from "../utils/geo";
-import { theme, CATEGORY_ICONS } from "../theme";
+import { theme } from "../theme";
+import { getCategoryIcon } from "../icons";
 import L from "leaflet";
 
 // Helper components
@@ -276,7 +277,7 @@ export default function MyAreaPage() {
                         }}
                     >
                         <Popup>
-                            <strong>{CATEGORY_ICONS[s.category] || "📍"} {s.category.replace("_", " ")}</strong><br />
+                            <strong>{getCategoryIcon(s.category, "1rem")} {s.category.replace("_", " ")}</strong><br />
                             Severity: {s.severity}/5<br />
                             {s.description?.slice(0, 60)}...
                         </Popup>
@@ -403,7 +404,7 @@ export default function MyAreaPage() {
                                             borderRadius: "10px",
                                             border: `1px solid ${theme.colors.border}`
                                         }}>
-                                            <span style={{ fontSize: "1.25rem" }}>{CATEGORY_ICONS[cat] || "📍"}</span>
+                                            <span style={{ fontSize: "1.25rem" }}>{getCategoryIcon(cat, "1.25rem")}</span>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 600, fontSize: "0.875rem", textTransform: "capitalize" }}>{cat.replace("_", " ")}</div>
                                                 <div style={{
@@ -449,7 +450,7 @@ export default function MyAreaPage() {
                                         }} />
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontWeight: 600, fontSize: "0.8rem", textTransform: "capitalize" }}>
-                                                {CATEGORY_ICONS[s.category]} {s.category.replace("_", " ")}
+                                                {getCategoryIcon(s.category, "0.875rem")} {s.category.replace("_", " ")}
                                             </div>
                                         </div>
                                         <span style={{
@@ -604,8 +605,8 @@ export default function MyAreaPage() {
                                                 ? "linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)"
                                                 : "linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)",
                                         border: `2px solid ${aiInsight.priorityLevel === "High" ? "#ef4444"
-                                                : aiInsight.priorityLevel === "Medium" ? "#f59e0b"
-                                                    : "#22c55e"
+                                            : aiInsight.priorityLevel === "Medium" ? "#f59e0b"
+                                                : "#22c55e"
                                             }`,
                                         marginBottom: "1rem"
                                     }}>

@@ -7,6 +7,7 @@ import type { SOSAlert } from "../types/sosAlert";
 import { SOS_TYPE_INFO } from "../types/sosAlert";
 import { haversineDistance, formatDistance } from "../utils/geo";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 
 type Props = {
     maxDistance?: number; // meters, default 5km
@@ -187,7 +188,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                         fontSize: theme.typography.sizes.xs,
                                         color: theme.colors.text.muted
                                     }}>
-                                        👥 {alert.respondersCount} responding
+                                        <Icon icon={Icons.users} size="0.75rem" /> {alert.respondersCount} responding
                                     </span>
 
                                     <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -201,7 +202,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                                 fontSize: theme.typography.sizes.xs,
                                             }}
                                         >
-                                            🗺️ View Map
+                                            <Icon icon={Icons.map} size="0.75rem" /> View Map
                                         </button>
 
                                         {user && (
@@ -216,7 +217,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                                     opacity: isResponding ? 0.7 : 1,
                                                 }}
                                             >
-                                                {hasResponded ? "✓ Responding" : isResponding ? "..." : "🚗 I'll Help"}
+                                                {hasResponded ? <><Icon icon={Icons.check} size="0.625rem" /> Responding</> : isResponding ? "..." : <><Icon icon={Icons.car} size="0.625rem" /> I'll Help</>}
                                             </button>
                                         )}
                                     </div>
@@ -359,7 +360,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                             alignItems: "center",
                         }}>
                             <div style={{ fontSize: theme.typography.sizes.sm, color: theme.colors.text.secondary }}>
-                                📍 {mapAlert.lat.toFixed(5)}, {mapAlert.lng.toFixed(5)}
+                                <Icon icon={Icons.location} size="0.75rem" /> {mapAlert.lat.toFixed(5)}, {mapAlert.lng.toFixed(5)}
                             </div>
                             {geo.lat !== null && geo.lng !== null && (
                                 <div style={{

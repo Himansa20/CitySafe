@@ -3,6 +3,7 @@ import { confirmSignal, hasConfirmed } from "../services/confirmations";
 import { useAuth } from "../services/useAuth";
 import { useGeolocation } from "../services/useGeolocation";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 import {
   haversineDistance,
   formatDistance,
@@ -107,7 +108,7 @@ export default function ConfirmButton({
 
   // Determine button appearance
   let buttonStyle = { ...theme.button.base, ...theme.button.primary };
-  let buttonText = "👍 Confirm";
+  let buttonText: React.ReactNode = <><Icon icon={Icons.thumbsUp} size="0.875rem" /> Confirm</>;
 
   if (confirmed) {
     buttonStyle = {
@@ -117,7 +118,7 @@ export default function ConfirmButton({
       color: "#fff",
       border: "none",
     };
-    buttonText = "✓ Confirmed";
+    buttonText = <><Icon icon={Icons.check} size="0.875rem" /> Confirmed</>;
   } else if (proximityStatus === "too_far") {
     buttonStyle = {
       ...theme.button.base,
@@ -125,9 +126,9 @@ export default function ConfirmButton({
       backgroundColor: "#f0f0f0",
       cursor: "not-allowed",
     };
-    buttonText = "📍 Too far to confirm";
+    buttonText = <><Icon icon={Icons.location} size="0.875rem" /> Too far to confirm</>;
   } else if (proximityStatus === "checking") {
-    buttonText = "📍 Getting location...";
+    buttonText = <><Icon icon={Icons.location} size="0.875rem" /> Getting location...</>;
   } else if (proximityStatus === "no_location") {
     buttonStyle = {
       ...theme.button.base,
@@ -135,7 +136,7 @@ export default function ConfirmButton({
       backgroundColor: "#fff3cd",
       cursor: "not-allowed",
     };
-    buttonText = "📍 Location required";
+    buttonText = <><Icon icon={Icons.location} size="0.875rem" /> Location required</>;
   } else if (busy) {
     buttonText = "...";
   }
@@ -169,7 +170,7 @@ export default function ConfirmButton({
           }}
         >
           {proximityStatus === "within_range"
-            ? `✓ ${formatDistance(distance)} away - close enough`
+            ? <><Icon icon={Icons.check} size="0.75rem" /> {formatDistance(distance)} away - close enough</>
             : `${formatDistance(distance)} away (max ${formatDistance(CONFIRMATION_RADIUS_METERS)})`}
         </div>
       )}

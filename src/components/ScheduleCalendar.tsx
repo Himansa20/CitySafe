@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { WasteSchedule } from "../types/wasteSchedule";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 
 type Props = {
     schedules: WasteSchedule[];
@@ -131,7 +132,7 @@ export default function ScheduleCalendar({
                             padding: "0.35rem",
                         }}
                     >
-                        ←
+                        <Icon icon={Icons.chevronLeft} size="0.75rem" />
                     </button>
                     <button
                         onClick={navigateToday}
@@ -152,7 +153,7 @@ export default function ScheduleCalendar({
                             padding: "0.35rem",
                         }}
                     >
-                        →
+                        <Icon icon={Icons.chevronRight} size="0.75rem" />
                     </button>
                     <span
                         style={{

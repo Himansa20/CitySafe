@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import type { Signal } from "../types/signal";
 import ConfirmButton from "./ConfirmButton";
 import { getPriorityBadge } from "../utils/scoring";
-import { theme, CATEGORY_ICONS } from "../theme";
+import { theme } from "../theme";
+import { getCategoryIcon, Icon, Icons } from "../icons";
 
 function PriorityBadge({ score }: { score: number }) {
   const b = getPriorityBadge(score);
@@ -71,7 +72,7 @@ export default function SignalList({ signals }: { signals: Signal[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
       {signals.map((s) => {
-        const icon = CATEGORY_ICONS[s.category] || "📌";
+        const icon = getCategoryIcon(s.category, "1.25rem");
 
         return (
           <div
@@ -82,12 +83,12 @@ export default function SignalList({ signals }: { signals: Signal[] }) {
               transition: theme.transitions.default,
               cursor: "default",
               borderLeft: `4px solid ${s.status === "resolved"
-                  ? theme.colors.status.success
-                  : getPriorityBadge(s.priorityScore ?? 0) === "High"
-                    ? theme.colors.status.danger
-                    : getPriorityBadge(s.priorityScore ?? 0) === "Medium"
-                      ? theme.colors.status.warning
-                      : theme.colors.primary
+                ? theme.colors.status.success
+                : getPriorityBadge(s.priorityScore ?? 0) === "High"
+                  ? theme.colors.status.danger
+                  : getPriorityBadge(s.priorityScore ?? 0) === "Medium"
+                    ? theme.colors.status.warning
+                    : theme.colors.primary
                 }`
             }}
           >
@@ -157,19 +158,19 @@ export default function SignalList({ signals }: { signals: Signal[] }) {
               marginBottom: "0.75rem"
             }}>
               <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                👥 {s.confirmationsCount ?? 0} confirmed
+                <Icon icon={Icons.users} size="0.75rem" /> {s.confirmationsCount ?? 0} confirmed
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                ⚡ Severity {s.severity}/5
+                <Icon icon={Icons.bolt} size="0.75rem" /> Severity {s.severity}/5
               </span>
               {s.hasLocalPhoto && (
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  📸 Photo
+                  <Icon icon={Icons.camera} size="0.75rem" /> Photo
                 </span>
               )}
               {s.affectedGroups.length > 0 && (
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  🎯 {s.affectedGroups.slice(0, 2).join(", ")}
+                  <Icon icon={Icons.bullseye} size="0.75rem" /> {s.affectedGroups.slice(0, 2).join(", ")}
                   {s.affectedGroups.length > 2 && ` +${s.affectedGroups.length - 2}`}
                 </span>
               )}

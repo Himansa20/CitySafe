@@ -5,6 +5,7 @@ import { createSOSAlert, cancelSOSAlert, subscribeUserSOSAlerts } from "../servi
 import type { SOSAlert, SOSAlertType } from "../types/sosAlert";
 import { SOS_TYPE_INFO } from "../types/sosAlert";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 
 type ModalState = "closed" | "type-select" | "confirming" | "active" | "error";
 
@@ -303,7 +304,7 @@ export default function SOSButton() {
                                         fontSize: theme.typography.sizes.sm,
                                         color: "#92400e"
                                     }}>
-                                        ⚠️ Location access required for SOS
+                                        <Icon icon={Icons.alert} size="0.875rem" color="#92400e" /> Location access required for SOS
                                     </div>
                                 )}
 
@@ -328,7 +329,7 @@ export default function SOSButton() {
                                             opacity: geo.lat === null ? 0.5 : 1,
                                         }}
                                     >
-                                        🚨 Send SOS
+                                        <Icon icon={Icons.bell} size="0.875rem" /> Send SOS
                                     </button>
                                 </div>
                             </>
@@ -432,7 +433,7 @@ export default function SOSButton() {
                                             Location shared
                                         </span>
                                         <span style={{ fontWeight: 600, color: theme.colors.status.success }}>
-                                            ✓ Yes
+                                            <Icon icon={Icons.check} size="0.75rem" /> Yes
                                         </span>
                                     </div>
                                 </div>

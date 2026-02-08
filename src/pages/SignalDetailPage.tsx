@@ -10,6 +10,7 @@ import { subscribeActionLogsBySignal, subscribeOpenHelpRequests } from "../servi
 import { pledgeHelp, hasPledged } from "../services/help";
 import { useAuth } from "../services/useAuth";
 import { theme } from "../theme";
+import { Icon, Icons } from "../icons";
 
 function StatusTimeline({ status }: { status: Signal["status"] }) {
   const steps: Signal["status"][] = ["new", "acknowledged", "in_progress", "resolved"];
@@ -182,7 +183,7 @@ export default function SignalDetailPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontSize: theme.typography.sizes["2xl"], fontWeight: 800 }}>Signal Details</h2>
         <Link to="/" style={{ color: theme.colors.primary, textDecoration: "none", fontWeight: 600, fontSize: theme.typography.sizes.sm }}>
-          ← Back to Map
+          <Icon icon={Icons.arrowLeft} size="0.75rem" /> Back to Map
         </Link>
       </div>
 
@@ -256,7 +257,7 @@ export default function SignalDetailPage() {
                 <img src={photoUrl} alt="Local" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: "8px", boxShadow: theme.shadows.md }} />
               ) : photoTried ? (
                 <div style={{ textAlign: "center", color: theme.colors.text.secondary }}>
-                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🔒</div>
+                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}><Icon icon={Icons.lock} size="2rem" color={theme.colors.text.secondary} /></div>
                   Photo stored locally on reporter's device
                 </div>
               ) : (
@@ -264,7 +265,7 @@ export default function SignalDetailPage() {
               )
             ) : (
               <div style={{ color: theme.colors.text.secondary, textAlign: "center" }}>
-                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📷</div>
+                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}><Icon icon={Icons.camera} size="2rem" color={theme.colors.text.secondary} /></div>
                 No photo attached
               </div>
             )}
@@ -364,7 +365,7 @@ export default function SignalDetailPage() {
                           whiteSpace: "nowrap"
                         }}
                       >
-                        {pledged ? "✓ You Pledged" : pledgeBusy === r.id ? "..." : "Pledge Support"}
+                        {pledged ? <><Icon icon={Icons.check} size="0.75rem" /> You Pledged</> : pledgeBusy === r.id ? "..." : "Pledge Support"}
                       </button>
                     </div>
                   </div>

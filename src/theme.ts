@@ -260,20 +260,6 @@ export const theme = {
     }
 };
 
-// Category icon mapping for visual enhancement
-export const CATEGORY_ICONS: Record<string, string> = {
-    waste: "🗑️",
-    safety: "⚠️",
-    transport: "🚌",
-    flooding: "🌊",
-    accessibility: "♿",
-    public_space: "🏞️",
-};
+// Note: Category and status icon mappings are now in icons.tsx
+// Use getCategoryIcon() and getStatusIcon() from icons.tsx for icon components
 
-// Status icon mapping
-export const STATUS_ICONS: Record<string, string> = {
-    new: "🔴",
-    in_progress: "🟡",
-    resolved: "🟢",
-    rejected: "⚫",
-};
