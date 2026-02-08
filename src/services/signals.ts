@@ -3,26 +3,35 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   where,
 } from "firebase/firestore";
+
 import { db } from "./firebase";
 import type { NewSignalInput, Signal, Category } from "../types/signal";
 import { computePriorityScore } from "../utils/scoring";
 import type { TimeWindow } from "../utils/filters";
 import { getThresholdDate } from "../utils/filters";
-import { onSnapshot as onDocSnapshot } from "firebase/firestore";
 
 const signalsCol = collection(db, "signals");
 
 export type SignalQueryOptions = {
-  timeWindow: TimeWindow;         // base query filter
-  categories: Category[];         // optional server-side filter (== or in)
-  status: "new" | "all";          // status is always "new" now but keep param
+  timeWindow: TimeWindow;
+  categories: Category[];
+  status: "new" | "all";
 };
+
+export async function listSignals(opts?: { limit?: number }): Promise<Signal[]> {
+  const lim = opts?.limit ?? 500;
+  const q = query(collection(db, "signals"), orderBy("eventTime", "desc"), limit(lim));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Signal[];
+}
 
 export function subscribeSignalsV2(
   options: SignalQueryOptions,
@@ -36,13 +45,10 @@ export function subscribeSignalsV2(
     orderBy("eventTime", "desc"),
   ];
 
-  // Status: in Phase 2, signals are only "new" but keep it consistent
   if (options.status !== "all") {
     constraints.push(where("status", "==", options.status));
   }
 
-  // Category filter: if 1 category, use ==. If 2..10, use in.
-  // If 0 categories, no filter.
   if (options.categories.length === 1) {
     constraints.push(where("category", "==", options.categories[0]));
   } else if (options.categories.length >= 2 && options.categories.length <= 10) {
@@ -75,13 +81,22 @@ export async function createSignal(input: NewSignalInput): Promise<string> {
   if (input.status !== "new") throw new Error("Phase 2: status must be 'new'");
 
   const initialConfirmations = 0;
-  const initialScore = computePriorityScore(input.severity, initialConfirmations, input.affectedGroups);
+  const initialScore = computePriorityScore(
+    input.severity,
+    initialConfirmations,
+    input.affectedGroups
+  );
 
   const res = await addDoc(signalsCol, {
     ...input,
     confirmationsCount: 0,
     priorityScore: initialScore,
-    eventTime: serverTimestamp(), // Phase 2: for now eventTime == creation time
+
+    status: "new",
+    assignedOrg: null,
+    statusUpdatedAt: serverTimestamp(),
+
+    eventTime: serverTimestamp(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -95,7 +110,7 @@ export function subscribeSignalById(
   onError?: (err: unknown) => void
 ) {
   const ref = doc(db, "signals", id);
-  return onDocSnapshot(
+  return onSnapshot(
     ref,
     (snap) => {
       if (!snap.exists()) return cb(null);

@@ -20,7 +20,7 @@ export const AFFECTED_GROUPS = [
 export type Category = (typeof CATEGORIES)[number];
 export type AffectedGroup = (typeof AFFECTED_GROUPS)[number];
 
-export type SignalStatus = "new";
+export type SignalStatus = "new" | "acknowledged" | "in_progress" | "resolved";
 
 export type Signal = {
   id: string;
@@ -33,22 +33,24 @@ export type Signal = {
   lat: number;
   lng: number;
 
-  status: SignalStatus; // "new"
+  status: SignalStatus;
 
-  // Phase 1 local photo metadata only
   hasLocalPhoto: boolean;
 
-  // Phase 2
-  confirmationsCount: number; // default 0
-  priorityScore: number; // stored number
-  eventTime: Timestamp; // use createdAt time for now, but stored separately
+  confirmationsCount: number;
+  priorityScore: number;
+
+  eventTime: Timestamp;
   updatedAt?: Timestamp;
+
+  // Phase 3
+  statusUpdatedAt?: Timestamp;
+  assignedOrg?: string;
 
   createdBy: string;
   createdAt: Timestamp;
 };
 
-// Input from UI form (Phase 1 fields only; service adds Phase 2 fields)
 export type NewSignalInput = {
   category: Category;
   affectedGroups: AffectedGroup[];
@@ -56,7 +58,7 @@ export type NewSignalInput = {
   description: string;
   lat: number;
   lng: number;
-  status: SignalStatus; // "new"
+  status: "new";
   hasLocalPhoto: boolean;
   createdBy: string;
 };

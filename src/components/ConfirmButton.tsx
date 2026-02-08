@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { confirmSignal, hasConfirmed } from "../services/confirmations";
 import { useAuth } from "../services/useAuth";
+import { theme } from "../theme";
 
 export default function ConfirmButton({
   signalId,
@@ -33,7 +34,7 @@ export default function ConfirmButton({
 
   async function onConfirm() {
     if (!user) {
-      setErr("Please sign in to confirm.");
+      setErr("Sign in needed");
       return;
     }
     setBusy(true);
@@ -45,7 +46,7 @@ export default function ConfirmButton({
         // no-op
       }
     } catch (e) {
-      setErr((e as Error)?.message ?? "Confirm failed");
+      setErr((e as Error)?.message ?? "Failed");
     } finally {
       setBusy(false);
     }
@@ -54,19 +55,26 @@ export default function ConfirmButton({
   const disabled = loading || busy || confirmed;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
       <button
         type="button"
         onClick={onConfirm}
         disabled={disabled}
         style={{
-          padding: compact ? "6px 10px" : "10px 12px",
-          opacity: disabled ? 0.7 : 1,
+          ...theme.button.base,
+          ...(confirmed ? theme.button.secondary : theme.button.primary),
+          backgroundColor: confirmed ? theme.colors.status.success : undefined,
+          color: confirmed ? "#fff" : undefined,
+          border: confirmed ? "none" : undefined,
+          padding: compact ? "0.4rem 0.8rem" : "0.6rem 1rem",
+          opacity: disabled && !confirmed ? 0.7 : 1,
+          width: "100%",
+          fontSize: compact ? theme.typography.sizes.xs : theme.typography.sizes.sm,
         }}
       >
-        {confirmed ? "Confirmed" : busy ? "Confirming..." : "Confirm"}
+        {confirmed ? "✓ Confirmed" : busy ? "..." : "👍 Confirm"}
       </button>
-      {err && <div style={{ color: "crimson", fontSize: 12 }}>{err}</div>}
+      {err && <div style={{ color: theme.colors.status.danger, fontSize: theme.typography.sizes.xs }}>{err}</div>}
     </div>
   );
 }

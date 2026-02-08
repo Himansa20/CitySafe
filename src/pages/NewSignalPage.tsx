@@ -19,6 +19,7 @@ import {
   type Category,
   type NewSignalInput,
 } from "../types/signal";
+import { theme } from "../theme";
 
 const DEFAULT_CENTER: [number, number] = [6.9271, 79.8612];
 
@@ -38,9 +39,6 @@ function MapAutoCenter({
   useEffect(() => {
     if (!enabled) return;
     if (lat == null || lng == null) return;
-    // DEBUG
-    // eslint-disable-next-line no-console
-    console.log("[MapAutoCenter] setView ->", { lat, lng, zoom });
     map.setView([lat, lng], zoom, { animate: true });
   }, [enabled, lat, lng, zoom, map]);
 
@@ -63,9 +61,6 @@ function LocationPicker({
   function ClickHandler() {
     useMapEvents({
       click(e) {
-        // DEBUG
-        // eslint-disable-next-line no-console
-        console.log("[LocationPicker] map click ->", e.latlng);
         onChange({ lat: e.latlng.lat, lng: e.latlng.lng });
       },
     });
@@ -80,42 +75,36 @@ function LocationPicker({
         : DEFAULT_CENTER;
 
   return (
-    <div style={{ height: 360, border: "1px solid #eee", borderRadius: 10, overflow: "hidden" }}>
+    <div style={{ height: 360, borderRadius: theme.rounded.lg, overflow: "hidden", border: `1px solid ${theme.colors.border}`, position: "relative" }}>
       <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Follow/center on realtime location */}
         <MapAutoCenter enabled={followMe} lat={myLocation.lat} lng={myLocation.lng} zoom={16} />
-
         <ClickHandler />
 
-        {/* DEBUG: show location even if not following */}
         {myLocation.lat != null && myLocation.lng != null && (
           <>
-            {/* Accuracy halo (bigger + visible for debugging) */}
             {accuracy != null && (
               <CircleMarker
                 center={[myLocation.lat, myLocation.lng]}
-                radius={Math.min(Math.max(accuracy / 6, 18), 60)} // visible halo
+                radius={Math.min(Math.max(accuracy / 6, 18), 60)}
                 pathOptions={{
-                  color: "blue",
-                  fillColor: "blue",
+                  color: theme.colors.status.info,
+                  fillColor: theme.colors.status.info,
                   fillOpacity: 0.15,
                   weight: 1,
                 }}
               />
             )}
-
-            {/* 🔵 Blue dot (big + solid for debugging) */}
             <CircleMarker
               center={[myLocation.lat, myLocation.lng]}
-              radius={14}
+              radius={8}
               pathOptions={{
-                color: "blue",
-                fillColor: "blue",
+                color: "white",
+                fillColor: theme.colors.primary,
                 fillOpacity: 1,
                 weight: 2,
               }}
@@ -123,9 +112,28 @@ function LocationPicker({
           </>
         )}
 
-        {/* 📍 User-selected pin */}
         {value && <Marker position={[value.lat, value.lng]} />}
       </MapContainer>
+
+      {!value && (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          backgroundColor: "rgba(255,255,255,0.9)",
+          padding: "0.5rem 1rem",
+          borderRadius: theme.rounded.full,
+          fontSize: theme.typography.sizes.sm,
+          fontWeight: 600,
+          color: theme.colors.text.secondary,
+          pointerEvents: "none",
+          zIndex: 400,
+          boxShadow: theme.shadows.md
+        }}>
+          Click map to set location
+        </div>
+      )}
     </div>
   );
 }
@@ -134,15 +142,8 @@ export default function NewSignalPage() {
   const { user } = useAuth();
   const nav = useNavigate();
 
-  // follow controls only centering — we ALWAYS watch geolocation so dot can show
   const [followMe, setFollowMe] = useState(true);
   const geo = useGeolocation(true);
-
-  // DEBUG: log geolocation changes
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("[Geo] state ->", geo);
-  }, [geo.ok, geo.lat, geo.lng, geo.accuracy, geo.error, geo.watching]);
 
   const [category, setCategory] = useState<Category>("waste");
   const [affectedGroups, setAffectedGroups] = useState<AffectedGroup[]>([]);
@@ -166,7 +167,7 @@ export default function NewSignalPage() {
     e.preventDefault();
     if (!user) return;
     if (!location) {
-      setError("Pick a location by clicking on the map.");
+      setError("Please select a location on the map.");
       return;
     }
 
@@ -186,21 +187,10 @@ export default function NewSignalPage() {
         createdBy: user.uid,
       };
 
-      // DEBUG
-      // eslint-disable-next-line no-console
-      console.log("[Submit] creating signal ->", input);
-
       const signalId = await createSignal(input);
-
-      // DEBUG
-      // eslint-disable-next-line no-console
-      console.log("[Submit] created signalId ->", signalId);
 
       if (photoFile) {
         await saveLocalPhoto(signalId, photoFile);
-        // DEBUG
-        // eslint-disable-next-line no-console
-        console.log("[Submit] saved local photo for ->", signalId);
       }
 
       nav(`/signal/${signalId}`);
@@ -212,116 +202,161 @@ export default function NewSignalPage() {
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
-      <h2>New Signal</h2>
-
-      {/* DEBUG panel */}
-      <div style={{ padding: 10, border: "1px dashed #ddd", borderRadius: 10, fontSize: 12, background: "#fafafa" }}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>Debug</div>
-        <div>followMe: {String(followMe)}</div>
-        <div>geo.ok: {String(geo.ok)}</div>
-        <div>
-          geo.lat/lng: {geo.lat ?? "null"}, {geo.lng ?? "null"}
-        </div>
-        <div>geo.accuracy: {geo.accuracy ?? "null"}</div>
-        <div>geo.error: {geo.error ?? "null"}</div>
+    <div style={{ ...theme.layout.pageContainer, maxWidth: "800px" }}>
+      <div style={{ marginBottom: "1rem" }}>
+        <h2 style={{ fontSize: theme.typography.sizes["2xl"], fontWeight: 800, color: theme.colors.text.primary, marginBottom: "0.5rem" }}>
+          Report a New Issue
+        </h2>
+        <p style={{ color: theme.colors.text.secondary }}>
+          Identifying problems in your community helps everyone. Please provide accurate details.
+        </p>
       </div>
 
-      <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <label>
-          Category
-          <select value={category} onChange={(e) => setCategory(e.target.value as Category)} style={{ marginLeft: 8 }}>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div style={{ ...theme.card, padding: "2rem" }}>
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-        <div>
-          <div style={{ marginBottom: 6 }}>Affected groups</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {AFFECTED_GROUPS.map((g) => (
-              <label key={g} style={{ border: "1px solid #eee", padding: "6px 10px", borderRadius: 999 }}>
-                <input type="checkbox" checked={affectedGroups.includes(g)} onChange={() => toggleGroup(g)} /> {g}
-              </label>
-            ))}
+          {/* Section 1: What & Where */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem", width: "100%" }}>
+              <span style={{ fontSize: theme.typography.sizes.sm, fontWeight: 600, color: theme.colors.text.primary }}>CATEGORY</span>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+                style={theme.input}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c.replace("_", " ").toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <span style={{ fontSize: theme.typography.sizes.sm, fontWeight: 600, color: theme.colors.text.primary }}>SEVERITY (1-5)</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem", height: "100%" }}>
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  value={severity}
+                  onChange={(e) => setSeverity(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: theme.colors.primary }}
+                />
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: theme.typography.sizes.lg,
+                  color: theme.colors.primary,
+                  width: "1.5rem",
+                  textAlign: "center"
+                }}>{severity}</span>
+              </div>
+            </label>
           </div>
-        </div>
 
-        <label>
-          Severity: <b>{severity}</b>
-          <input
-            type="range"
-            min={1}
-            max={5}
-            value={severity}
-            onChange={(e) => setSeverity(Number(e.target.value))}
-            style={{ width: "100%" }}
-          />
-        </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <span style={{ fontSize: theme.typography.sizes.sm, fontWeight: 600, color: theme.colors.text.primary }}>DESCRIPTION</span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Describe the issue in detail..."
+              style={{ ...theme.input, resize: "vertical" }}
+            />
+          </label>
 
-        <label>
-          Description
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            placeholder="Describe the issue..."
-            style={{ width: "100%" }}
-          />
-        </label>
+          <div>
+            <span style={{ display: "block", fontSize: theme.typography.sizes.sm, fontWeight: 600, color: theme.colors.text.primary, marginBottom: "0.75rem" }}>
+              AFFECTED GROUPS
+            </span>
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              {AFFECTED_GROUPS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => toggleGroup(g)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "999px",
+                    border: `1px solid ${affectedGroups.includes(g) ? theme.colors.primary : theme.colors.border}`,
+                    background: affectedGroups.includes(g) ? theme.colors.primary : "transparent",
+                    color: affectedGroups.includes(g) ? "white" : theme.colors.text.secondary,
+                    fontSize: theme.typography.sizes.sm,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <div>
-          <div style={{ marginBottom: 6 }}>Location (click map to drop pin)</div>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+              <span style={{ fontSize: theme.typography.sizes.sm, fontWeight: 600, color: theme.colors.text.primary }}>
+                LOCATION 📍
+              </span>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setFollowMe(true)}
+                  style={{ ...theme.button.base, ...theme.button.ghost, padding: "4px 8px", fontSize: theme.typography.sizes.xs }}
+                >
+                  Current Location
+                </button>
+              </div>
+            </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
-            <button type="button" onClick={() => setFollowMe(true)} style={{ padding: "6px 10px" }}>
-              Follow my location
+            <LocationPicker
+              value={location}
+              onChange={(v) => {
+                setLocation(v);
+                setFollowMe(false);
+              }}
+              followMe={followMe}
+              myLocation={{ lat: geo.lat, lng: geo.lng }}
+              accuracy={geo.accuracy}
+            />
+            <div style={{ fontSize: theme.typography.sizes.xs, color: theme.colors.text.secondary, marginTop: "0.5rem", textAlign: "right" }}>
+              {location ? `Selected: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : "Click on map to select precise location"}
+            </div>
+          </div>
+
+          <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <span style={{ fontSize: theme.typography.sizes.sm, fontWeight: 600, color: theme.colors.text.primary }}>PHOTO (Optional)</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+              style={{ ...theme.input, padding: "0.5rem" }}
+            />
+            <span style={{ fontSize: theme.typography.sizes.xs, color: theme.colors.text.secondary }}>
+              Note: Photos are saved locally on your device for privacy.
+            </span>
+          </label>
+
+          {error && <div style={{ color: theme.colors.status.danger, textAlign: "center" }}>{error}</div>}
+
+          <div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: "1.5rem", marginTop: "0.5rem" }}>
+            <button
+              type="submit"
+              disabled={!canSubmit || submitting}
+              style={{
+                ...theme.button.base,
+                ...theme.button.primary,
+                width: "100%",
+                padding: "1rem",
+                fontSize: theme.typography.sizes.lg,
+                opacity: (!canSubmit || submitting) ? 0.6 : 1
+              }}
+            >
+              {submitting ? "Submitting Report..." : "Submit Signal"}
             </button>
-            <button type="button" onClick={() => setFollowMe(false)} style={{ padding: "6px 10px" }}>
-              Stop following
-            </button>
-            {geo.error && <span style={{ color: "crimson", fontSize: 12 }}>{geo.error}</span>}
           </div>
-
-          <LocationPicker
-            value={location}
-            onChange={(v) => {
-              setLocation(v);
-              setFollowMe(false); // stop auto-centering after user pins
-            }}
-            followMe={followMe}
-            myLocation={{ lat: geo.lat, lng: geo.lng }}
-            accuracy={geo.accuracy}
-          />
-
-          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-            {location ? `Pinned at (${location.lat.toFixed(5)}, ${location.lng.toFixed(5)})` : "No pin yet."}
-          </div>
-        </div>
-
-        <label>
-          Optional photo (saved ONLY on this device)
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-            style={{ display: "block", marginTop: 6 }}
-          />
-        </label>
-
-        {error && <div style={{ color: "crimson" }}>{error}</div>}
-
-        <button type="submit" disabled={!canSubmit || submitting} style={{ padding: "10px 12px" }}>
-          {submitting ? "Submitting..." : "Submit Signal"}
-        </button>
-
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
-          Out of scope: editing signals, upvotes, NGO/admin actions, unsafe paths, heatmaps.
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
