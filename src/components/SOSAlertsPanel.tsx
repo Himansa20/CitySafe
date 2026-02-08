@@ -7,7 +7,8 @@ import type { SOSAlert } from "../types/sosAlert";
 import { SOS_TYPE_INFO } from "../types/sosAlert";
 import { haversineDistance, formatDistance } from "../utils/geo";
 import { theme } from "../theme";
-import { Icon, Icons } from "../icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Icons } from '../icons';
 
 type Props = {
     maxDistance?: number; // meters, default 5km
@@ -75,7 +76,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                         fontWeight: 700,
                         fontSize: theme.typography.sizes.sm
                     }}>
-                        <span style={{ animation: "flash 1s infinite" }}>🆘</span>
+                        <span style={{ animation: "flash 1s infinite" }}><FontAwesomeIcon icon={Icons.sos} /></span>
                         Active Emergencies Nearby
                     </div>
                     <span style={{
@@ -131,7 +132,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                             justifyContent: "center",
                                             fontSize: "1.5rem"
                                         }}>
-                                            {typeInfo.icon}
+                                            <FontAwesomeIcon icon={typeInfo.icon} />
                                         </div>
                                         <div>
                                             <div style={{
@@ -188,7 +189,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                         fontSize: theme.typography.sizes.xs,
                                         color: theme.colors.text.muted
                                     }}>
-                                        <Icon icon={Icons.users} size="0.75rem" /> {alert.respondersCount} responding
+                                        <FontAwesomeIcon icon={Icons.users} /> {alert.respondersCount} responding
                                     </span>
 
                                     <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -202,7 +203,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                                 fontSize: theme.typography.sizes.xs,
                                             }}
                                         >
-                                            <Icon icon={Icons.map} size="0.75rem" /> View Map
+                                            <FontAwesomeIcon icon={Icons.map} /> View Map
                                         </button>
 
                                         {user && (
@@ -217,7 +218,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                                     opacity: isResponding ? 0.7 : 1,
                                                 }}
                                             >
-                                                {hasResponded ? <><Icon icon={Icons.check} size="0.625rem" /> Responding</> : isResponding ? "..." : <><Icon icon={Icons.car} size="0.625rem" /> I'll Help</>}
+                                                {hasResponded ? <><FontAwesomeIcon icon={Icons.check} /> Responding</> : isResponding ? "..." : <><FontAwesomeIcon icon={Icons.car} /> I'll Help</>}
                                             </button>
                                         )}
                                     </div>
@@ -283,7 +284,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                 fontWeight: 700,
                                 color: theme.colors.status.danger,
                             }}>
-                                <span>{SOS_TYPE_INFO[mapAlert.type].icon}</span>
+                                <span><FontAwesomeIcon icon={SOS_TYPE_INFO[mapAlert.type].icon} /></span>
                                 {mapAlert.userName}'s Location
                             </div>
                             <button
@@ -295,7 +296,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                     fontSize: "1.25rem",
                                 }}
                             >
-                                ✕
+                                <FontAwesomeIcon icon={Icons.xmark} />
                             </button>
                         </div>
 
@@ -325,7 +326,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                 <Marker position={[mapAlert.lat, mapAlert.lng]}>
                                     <Popup>
                                         <div style={{ fontWeight: 600, color: theme.colors.status.danger }}>
-                                            🆘 {SOS_TYPE_INFO[mapAlert.type].label}
+                                            <FontAwesomeIcon icon={Icons.sos} /> {SOS_TYPE_INFO[mapAlert.type].label}
                                         </div>
                                         <div style={{ fontSize: theme.typography.sizes.sm }}>
                                             {mapAlert.userName}
@@ -345,7 +346,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                                             weight: 3,
                                         }}
                                     >
-                                        <Popup>📍 Your Location</Popup>
+                                        <Popup><FontAwesomeIcon icon={Icons.mapPin} /> Your Location</Popup>
                                     </CircleMarker>
                                 )}
                             </MapContainer>
@@ -360,7 +361,7 @@ export default function SOSAlertsPanel({ maxDistance = 5000 }: Props) {
                             alignItems: "center",
                         }}>
                             <div style={{ fontSize: theme.typography.sizes.sm, color: theme.colors.text.secondary }}>
-                                <Icon icon={Icons.location} size="0.75rem" /> {mapAlert.lat.toFixed(5)}, {mapAlert.lng.toFixed(5)}
+                                <FontAwesomeIcon icon={Icons.mapPin} /> {mapAlert.lat.toFixed(5)}, {mapAlert.lng.toFixed(5)}
                             </div>
                             {geo.lat !== null && geo.lng !== null && (
                                 <div style={{

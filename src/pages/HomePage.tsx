@@ -6,8 +6,7 @@ import { AFFECTED_GROUPS, CATEGORIES, type AffectedGroup, type Category } from "
 import { applyFilters, type SignalFiltersV2, type TimeWindow } from "../utils/filters";
 import { subscribeSignalsV2 } from "../services/signals";
 import { useGeolocation } from "../services/useGeolocation";
-import { theme } from "../theme";
-import { Icon, Icons, getCategoryIcon } from "../icons";
+import { theme, CATEGORY_ICONS } from "../theme";
 import SOSAlertsPanel from "../components/SOSAlertsPanel";
 
 const DEFAULT_CENTER: [number, number] = [6.9271, 79.8612];
@@ -106,7 +105,7 @@ export default function HomePage() {
             color: theme.colors.text.secondary,
             fontSize: theme.typography.sizes.sm
           }}>
-            {geo.lat !== null ? <><Icon icon={Icons.location} size="0.875rem" /> Showing issues near you</> : "Discover and report civic issues in your area"}
+            {geo.lat !== null ? "📍 Showing issues near you" : "Discover and report civic issues in your area"}
           </p>
         </div>
       </div>
@@ -131,7 +130,7 @@ export default function HomePage() {
                 ...(status === s ? theme.chip.active : theme.chip.inactive),
               }}
             >
-              {s === "new" ? <><Icon icon={Icons.statusNew} size="0.625rem" color="#ef4444" /> Open</> : <><Icon icon={Icons.list} size="0.75rem" /> All</>}
+              {s === "new" ? "🔴 Open" : "📋 All"}
             </button>
           ))}
         </div>
@@ -167,7 +166,7 @@ export default function HomePage() {
             gap: "0.5rem"
           }}
         >
-          <span><Icon icon={Icons.filters} size="0.875rem" /> Filters</span>
+          <span>🎛️ Filters</span>
           {activeFilterCount > 0 && (
             <span style={{
               backgroundColor: theme.colors.primary,
@@ -190,7 +189,7 @@ export default function HomePage() {
             ...(nightOnly ? theme.chip.active : theme.chip.inactive),
           }}
         >
-          <Icon icon={Icons.moon} size="0.875rem" /> Night only
+          🌙 Night only
         </button>
 
         {/* Clear All */}
@@ -245,7 +244,7 @@ export default function HomePage() {
                       ...(categories.includes(c) ? theme.chip.active : theme.chip.inactive),
                     }}
                   >
-                    {getCategoryIcon(c, "0.875rem")}
+                    <span>{CATEGORY_ICONS[c] || "📌"}</span>
                     <span style={{ textTransform: "capitalize" }}>{c.replace("_", " ")}</span>
                   </button>
                 ))}
@@ -320,7 +319,7 @@ export default function HomePage() {
               alignItems: "center",
               gap: "0.5rem"
             }}>
-              <Icon icon={Icons.map} size="0.875rem" /> Map View
+              🗺️ Map View
             </div>
             {geo.lat !== null && (
               <span style={{
@@ -373,7 +372,7 @@ export default function HomePage() {
               fontSize: theme.typography.sizes.sm,
               color: theme.colors.text.primary
             }}>
-              <Icon icon={Icons.list} size="0.875rem" /> Recent Signals
+              📋 Recent Signals
             </div>
             <span style={{
               ...theme.badge.base,
@@ -403,7 +402,7 @@ export default function HomePage() {
                 textAlign: "center",
                 color: theme.colors.text.secondary
               }}>
-                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}><Icon icon={Icons.inbox} size="2rem" color={theme.colors.text.muted} /></div>
+                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📭</div>
                 <div>No signals found matching your filters</div>
               </div>
             ) : (

@@ -3,7 +3,7 @@
  * Uses Overpass API to find nearby safe locations (police, hospitals, post offices)
  */
 
-export type SafePlaceType = "police" | "hospital" | "post_office" | "fire_station" | "pharmacy";
+export type SafePlaceType = "police" | "hospital" | "post_office" | "fire_station" | "pharmacy" | "shelter";
 
 export type SafePlace = {
     id: string;
@@ -25,9 +25,11 @@ const SAFE_PLACE_TYPES: Record<SafePlaceType, { osmTag: string; icon: string; la
     post_office: { osmTag: "amenity=post_office", icon: "📮", label: "Post Office" },
     fire_station: { osmTag: "amenity=fire_station", icon: "🚒", label: "Fire Station" },
     pharmacy: { osmTag: "amenity=pharmacy", icon: "💊", label: "Pharmacy" },
+    shelter: { osmTag: "amenity=shelter", icon: "🏠", label: "Shelter" },
 };
 
 export { SAFE_PLACE_TYPES };
+
 
 /**
  * Calculate distance between two points (Haversine formula)
@@ -210,3 +212,93 @@ export async function getAISafePlaceRecommendation(
         return null;
     }
 }
+
+// ============================================
+// ADMIN-MANAGED SAFE PLACES (Firebase)
+// ============================================
+
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+} from "firebase/firestore";
+
+import { db } from "./firebase";
+
+export type AdminSafePlace = {
+    id: string;
+    name: string;
+    type: SafePlaceType;
+    lat: number;
+    lng: number;
+    address?: string;
+    phone?: string;
+    is24Hours: boolean;
+    description?: string;
+    createdAt: Date;
+    createdBy: string;
+};
+
+export type NewAdminSafePlaceInput = Omit<AdminSafePlace, "id" | "createdAt">;
+
+const adminSafePlacesCol = collection(db, "safePlaces");
+
+/**
+ * Subscribe to admin-managed safe places
+ */
+export function subscribeAdminSafePlaces(
+    onData: (places: AdminSafePlace[]) => void,
+    onError?: (err: Error) => void
+): () => void {
+    const q = query(adminSafePlacesCol, orderBy("name"));
+
+    return onSnapshot(
+        q,
+        (snapshot) => {
+            const places: AdminSafePlace[] = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate() || new Date(),
+            })) as AdminSafePlace[];
+            onData(places);
+        },
+        (err) => {
+            console.error("Error subscribing to admin safe places:", err);
+            onError?.(err);
+        }
+    );
+}
+
+/**
+ * Add a new admin-managed safe place
+ */
+export async function addAdminSafePlace(input: NewAdminSafePlaceInput): Promise<string> {
+    const docRef = await addDoc(adminSafePlacesCol, {
+        ...input,
+        createdAt: serverTimestamp(),
+    });
+    return docRef.id;
+}
+
+/**
+ * Update an admin-managed safe place
+ */
+export async function updateAdminSafePlace(id: string, updates: Partial<NewAdminSafePlaceInput>): Promise<void> {
+    const ref = doc(db, "safePlaces", id);
+    await updateDoc(ref, updates);
+}
+
+/**
+ * Delete an admin-managed safe place
+ */
+export async function deleteAdminSafePlace(id: string): Promise<void> {
+    const ref = doc(db, "safePlaces", id);
+    await deleteDoc(ref);
+}
+

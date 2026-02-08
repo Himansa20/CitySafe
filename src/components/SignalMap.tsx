@@ -2,8 +2,9 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaf
 import { Link } from "react-router-dom";
 import type { Signal } from "../types/signal";
 import { formatScore, getPriorityBadge } from "../utils/scoring";
-import { theme } from "../theme";
-import { getCategoryIcon, Icon, Icons } from "../icons";
+import { theme, CATEGORY_ICONS } from "../theme";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Icons } from '../icons';
 
 type Props = {
   signals: Signal[];
@@ -54,8 +55,8 @@ export default function SignalMap({ signals, center, zoom = 14, height = 420, us
               }}
             >
               <Popup>
-                <div style={{ fontWeight: 600, color: theme.colors.text.primary }}>
-                  <Icon icon={Icons.location} size="0.875rem" /> Your Location
+                <div style={{ fontWeight: 600, color: theme.colors.text.primary, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FontAwesomeIcon icon={Icons.location} /> Your Location
                 </div>
               </Popup>
             </CircleMarker>
@@ -65,7 +66,7 @@ export default function SignalMap({ signals, center, zoom = 14, height = 420, us
         {/* Signal Markers */}
         {signals.map((s) => {
           const badge = getPriorityBadge(s.priorityScore ?? 0);
-          const icon = getCategoryIcon(s.category, "1.25rem");
+          const icon = CATEGORY_ICONS[s.category] || Icons.mapPin;
           const isResolved = s.status === "resolved";
 
           return (
@@ -86,7 +87,7 @@ export default function SignalMap({ signals, center, zoom = 14, height = 420, us
                     paddingBottom: "0.5rem",
                     borderBottom: `1px solid ${theme.colors.border}`
                   }}>
-                    <span style={{ fontSize: "1.25rem" }}>{icon}</span>
+                    <span style={{ fontSize: '1.25rem' }}><FontAwesomeIcon icon={icon} /></span>
                     <div>
                       <div style={{
                         fontWeight: 700,
@@ -99,7 +100,7 @@ export default function SignalMap({ signals, center, zoom = 14, height = 420, us
                         fontSize: theme.typography.sizes.xs,
                         color: isResolved ? theme.colors.status.success : theme.colors.status.warning
                       }}>
-                        {isResolved ? <><Icon icon={Icons.check} size="0.625rem" color={theme.colors.status.success} /> Resolved</> : <><Icon icon={Icons.statusNew} size="0.625rem" color={theme.colors.status.warning} /> Open</>}
+                        <><FontAwesomeIcon icon={Icons.statusNew} style={{ color: isResolved ? theme.colors.status.success : theme.colors.status.danger }} /> {isResolved ? 'Resolved' : 'Open'}</>
                       </div>
                     </div>
                   </div>
@@ -139,7 +140,7 @@ export default function SignalMap({ signals, center, zoom = 14, height = 420, us
                     alignItems: "center",
                     gap: "0.25rem"
                   }}>
-                    <Icon icon={Icons.users} size="0.625rem" /> {s.confirmationsCount ?? 0} confirmations
+                    <FontAwesomeIcon icon={Icons.users} /> {s.confirmationsCount ?? 0} confirmations
                   </div>
 
                   {/* Action Button */}

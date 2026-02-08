@@ -314,10 +314,16 @@ export default function NewSignalPage() {
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <button
                   type="button"
-                  onClick={() => setFollowMe(true)}
+                  onClick={() => {
+                    setFollowMe(true);
+                    // Actually set the location to user's current position
+                    if (geo.lat != null && geo.lng != null) {
+                      setLocation({ lat: geo.lat, lng: geo.lng });
+                    }
+                  }}
                   style={{ ...theme.button.base, ...theme.button.ghost, padding: "4px 8px", fontSize: theme.typography.sizes.xs }}
                 >
-                  Current Location
+                  📍 Use My Location
                 </button>
               </div>
             </div>
@@ -332,8 +338,19 @@ export default function NewSignalPage() {
               myLocation={{ lat: geo.lat, lng: geo.lng }}
               accuracy={geo.accuracy}
             />
-            <div style={{ fontSize: theme.typography.sizes.xs, color: theme.colors.text.secondary, marginTop: "0.5rem", textAlign: "right" }}>
-              {location ? `Selected: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : "Click on map to select precise location"}
+            <div style={{ fontSize: theme.typography.sizes.xs, color: theme.colors.text.secondary, marginTop: "0.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>
+                {geo.error ? (
+                  <span style={{ color: theme.colors.status.danger }}>⚠️ {geo.error}</span>
+                ) : !geo.ok && !geo.lat ? (
+                  <span style={{ color: theme.colors.status.warning }}>📍 Acquiring your location...</span>
+                ) : geo.accuracy ? (
+                  <span>📍 GPS accuracy: ±{Math.round(geo.accuracy)}m</span>
+                ) : null}
+              </span>
+              <span>
+                {location ? `Selected: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : "Click on map to select precise location"}
+              </span>
             </div>
           </div>
 

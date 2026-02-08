@@ -3,11 +3,13 @@ import { MapContainer, TileLayer, CircleMarker, Popup, Marker, useMap, Rectangle
 import { useGeolocation } from "../services/useGeolocation";
 import { subscribeSignalsV2 } from "../services/signals";
 import { fetchUrbanInfrastructure, getAreaInsight, type UrbanPOI, type AreaInsight } from "../services/urbanInsights";
+import { subscribeAdminSafePlaces, SAFE_PLACE_TYPES, type AdminSafePlace } from "../services/safePlaces";
 import type { Signal } from "../types/signal";
 import { haversineDistance } from "../utils/geo";
-import { theme } from "../theme";
-import { getCategoryIcon } from "../icons";
+import { theme, CATEGORY_ICONS } from "../theme";
 import L from "leaflet";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Icons } from '../icons';
 
 // Helper components
 function DensityHeatmap({ signals }: { signals: Signal[] }) {
@@ -64,7 +66,7 @@ function DensityHeatmap({ signals }: { signals: Signal[] }) {
                     }}
                 >
                     <Popup>
-                        <strong>🔥 Hotspot</strong><br />
+                        <strong><FontAwesomeIcon icon={Icons.fire} /> Hotspot</strong><br />
                         {cell.count} reports<br />
                         Top issue: {cell.topCategory?.replace("_", " ")}
                     </Popup>
@@ -89,6 +91,11 @@ export default function MyAreaPage() {
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
 
+    // Safe Places State
+    const [showSafePlacesModal, setShowSafePlacesModal] = useState(false);
+    const [safePlaces, setSafePlaces] = useState<AdminSafePlace[]>([]);
+    const [safePlacesLoading, setSafePlacesLoading] = useState(false);
+
     // Computed
     const userLat = geo.lat ?? DEFAULT_CENTER[0];
     const userLng = geo.lng ?? DEFAULT_CENTER[1];
@@ -104,12 +111,38 @@ export default function MyAreaPage() {
         return () => unsub();
     }, []);
 
+    // Subscribe to admin safe places
+    useEffect(() => {
+        setSafePlacesLoading(true);
+        const unsub = subscribeAdminSafePlaces(
+            (places) => {
+                setSafePlaces(places);
+                setSafePlacesLoading(false);
+            },
+            (err) => {
+                console.error("Error loading safe places:", err);
+                setSafePlacesLoading(false);
+            }
+        );
+        return () => unsub();
+    }, []);
+
     // Calculate nearby signals 
     const nearbySignals = useMemo(() => {
         return signals.filter(s =>
             haversineDistance(userLat, userLng, s.lat, s.lng) <= 1000
         );
     }, [signals, userLat, userLng]);
+
+    // Calculate nearby safe places with distance
+    const nearbySafePlaces = useMemo(() => {
+        return safePlaces
+            .map(place => ({
+                ...place,
+                distance: Math.round(haversineDistance(userLat, userLng, place.lat, place.lng))
+            }))
+            .sort((a, b) => a.distance - b.distance);
+    }, [safePlaces, userLat, userLng]);
 
     // Overview Stats
     const stats = useMemo(() => {
@@ -277,7 +310,7 @@ export default function MyAreaPage() {
                         }}
                     >
                         <Popup>
-                            <strong>{getCategoryIcon(s.category, "1rem")} {s.category.replace("_", " ")}</strong><br />
+                            <strong><FontAwesomeIcon icon={CATEGORY_ICONS[s.category] || Icons.mapPin} /> {s.category.replace("_", " ")}</strong><br />
                             Severity: {s.severity}/5<br />
                             {s.description?.slice(0, 60)}...
                         </Popup>
@@ -291,7 +324,7 @@ export default function MyAreaPage() {
                         position={[p.lat, p.lng]}
                         icon={new L.DivIcon({
                             className: "poi-icon",
-                            html: `<div style="background:white;padding:5px;border-radius:6px;border:2px solid #6366f1;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">${p.type === 'Street Light' ? '💡' : p.type === 'Police Station' ? '🚔' : p.type === 'Hospital' ? '🏥' : p.type === 'Bus Stop' ? '🚏' : p.type === 'Waste Bin' ? '🗑️' : '📍'}</div>`,
+                            html: `<div style="background:white;padding:5px;border-radius:6px;border:2px solid #6366f1;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fa-solid ${p.type === 'Street Light' ? 'fa-lightbulb' : p.type === 'Police Station' ? 'fa-shield-halved' : p.type === 'Hospital' ? 'fa-hospital' : p.type === 'Bus Stop' ? 'fa-bus' : p.type === 'Waste Bin' ? 'fa-trash' : 'fa-location-dot'}"></i></div>`,
                             iconSize: [28, 28]
                         })}
                     >
@@ -324,7 +357,7 @@ export default function MyAreaPage() {
                 {/* Header */}
                 <div style={{ padding: "1.5rem", borderBottom: `1px solid ${theme.colors.border}` }}>
                     <h1 style={{ margin: 0, fontSize: "1.6rem", fontWeight: 800, background: theme.colors.gradients.primary, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                        🌆 Urban Insights
+                        <FontAwesomeIcon icon={Icons.city} /> Urban Insights
                     </h1>
                     <p style={{ margin: "0.25rem 0 0", color: theme.colors.text.secondary, fontSize: "0.875rem" }}>
                         Analyzing {nearbySignals.length} reports within 1km
@@ -334,9 +367,9 @@ export default function MyAreaPage() {
                 {/* Tabs */}
                 <div style={{ display: "flex", padding: "0.75rem", gap: "0.5rem", background: "#f8fafc" }}>
                     {[
-                        { id: "overview", icon: "📊", label: "Overview" },
-                        { id: "heatmap", icon: "🔥", label: "Heatmap" },
-                        { id: "ai", icon: "🤖", label: "AI Analyst" },
+                        { id: "overview", icon: Icons.chart, label: "Overview" },
+                        { id: "heatmap", icon: Icons.fire, label: "Heatmap" },
+                        { id: "ai", icon: Icons.robot, label: "AI Analyst" },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -355,7 +388,7 @@ export default function MyAreaPage() {
                                 transition: "all 0.2s"
                             }}
                         >
-                            {tab.icon} {tab.label}
+                            <FontAwesomeIcon icon={(tab as any).icon} /> {tab.label}
                         </button>
                     ))}
                 </div>
@@ -388,7 +421,7 @@ export default function MyAreaPage() {
 
                             {/* Category Breakdown */}
                             <div>
-                                <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700 }}>📈 Top Issues</h3>
+                                <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700 }}><FontAwesomeIcon icon={Icons.chartLine} /> Top Issues</h3>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                                     {stats.topCategories.length === 0 ? (
                                         <div style={{ color: theme.colors.text.muted, fontSize: "0.875rem", padding: "1rem", textAlign: "center" }}>
@@ -404,7 +437,7 @@ export default function MyAreaPage() {
                                             borderRadius: "10px",
                                             border: `1px solid ${theme.colors.border}`
                                         }}>
-                                            <span style={{ fontSize: "1.25rem" }}>{getCategoryIcon(cat, "1.25rem")}</span>
+                                            <span style={{ fontSize: "1.25rem" }}><FontAwesomeIcon icon={CATEGORY_ICONS[cat] || Icons.mapPin} /></span>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 600, fontSize: "0.875rem", textTransform: "capitalize" }}>{cat.replace("_", " ")}</div>
                                                 <div style={{
@@ -430,7 +463,7 @@ export default function MyAreaPage() {
 
                             {/* Recent Activity */}
                             <div>
-                                <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700 }}>🕐 Recent Activity</h3>
+                                <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700 }}><FontAwesomeIcon icon={Icons.clock} /> Recent Activity</h3>
                                 {nearbySignals.slice(0, 3).map(s => (
                                     <div key={s.id} style={{
                                         display: "flex",
@@ -450,7 +483,7 @@ export default function MyAreaPage() {
                                         }} />
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontWeight: 600, fontSize: "0.8rem", textTransform: "capitalize" }}>
-                                                {getCategoryIcon(s.category, "0.875rem")} {s.category.replace("_", " ")}
+                                                <FontAwesomeIcon icon={CATEGORY_ICONS[s.category] || Icons.mapPin} /> {s.category.replace("_", " ")}
                                             </div>
                                         </div>
                                         <span style={{
@@ -465,6 +498,40 @@ export default function MyAreaPage() {
                                         </span>
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Nearby Safe Places Quick Access */}
+                            <div style={{
+                                padding: "1rem",
+                                borderRadius: "12px",
+                                background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                                color: "white"
+                            }}>
+                                <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <FontAwesomeIcon icon={Icons.hospital} /> Nearby Safe Places
+                                    {safePlacesLoading && <span style={{ fontSize: "0.7rem", opacity: 0.7 }}>Loading...</span>}
+                                </h3>
+                                <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.9 }}>
+                                    {nearbySafePlaces.length} emergency locations nearby
+                                </p>
+                                <button
+                                    onClick={() => setShowSafePlacesModal(true)}
+                                    style={{
+                                        display: "inline-block",
+                                        padding: "0.5rem 1rem",
+                                        backgroundColor: "rgba(255,255,255,0.2)",
+                                        border: "1px solid rgba(255,255,255,0.4)",
+                                        borderRadius: "8px",
+                                        color: "white",
+                                        textDecoration: "none",
+                                        fontWeight: 600,
+                                        fontSize: "0.85rem",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                >
+                                    <FontAwesomeIcon icon={Icons.mapPin} /> View Safe Places ({nearbySafePlaces.length})
+                                </button>
                             </div>
                         </div>
                     )}
@@ -495,7 +562,7 @@ export default function MyAreaPage() {
                                 background: "white",
                                 border: `1px solid ${theme.colors.border}`
                             }}>
-                                <h4 style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.9rem" }}>🌡️ Heat Legend</h4>
+                                <h4 style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.9rem" }}><FontAwesomeIcon icon={Icons.thermometer} /> Heat Legend</h4>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                                         <div style={{ width: "40px", height: "20px", background: "#dc2626", borderRadius: "4px", opacity: 0.7 }} />
@@ -529,7 +596,7 @@ export default function MyAreaPage() {
                                 border: "1px solid #c7d2fe"
                             }}>
                                 <div style={{ fontWeight: 700, marginBottom: "0.5rem", color: theme.colors.primary }}>
-                                    💡 Insight
+                                    <FontAwesomeIcon icon={Icons.lightbulb} /> Insight
                                 </div>
                                 <p style={{ margin: 0, fontSize: "0.85rem", lineHeight: 1.5, color: theme.colors.text.secondary }}>
                                     {heatmapStats.hotspotCount > 3
@@ -547,7 +614,7 @@ export default function MyAreaPage() {
                         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                             {!aiInsight ? (
                                 <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
-                                    <div style={{ fontSize: "3.5rem", marginBottom: "1rem" }}>🤖</div>
+                                    <div style={{ fontSize: "3.5rem", marginBottom: "1rem" }}><FontAwesomeIcon icon={Icons.robot} /></div>
                                     <h3 style={{ margin: "0 0 0.5rem", fontWeight: 800 }}>AI Urban Analyst</h3>
                                     <p style={{ color: theme.colors.text.secondary, marginBottom: "1.5rem", fontSize: "0.9rem" }}>
                                         Get AI-powered insights based on local reports and nearby infrastructure.
@@ -564,7 +631,7 @@ export default function MyAreaPage() {
                                             padding: "0.875rem"
                                         }}
                                     >
-                                        ⚡ Quick Analysis (Local)
+                                        <FontAwesomeIcon icon={Icons.bolt} /> Quick Analysis (Local)
                                     </button>
 
                                     {/* Full AI Analysis */}
@@ -584,7 +651,7 @@ export default function MyAreaPage() {
 
                                     {!geo.lat && (
                                         <p style={{ color: theme.colors.status.warning, fontSize: "0.75rem", marginTop: "0.75rem" }}>
-                                            ⚠️ Enable location for better results
+                                            <FontAwesomeIcon icon={Icons.safety} /> Enable location for better results
                                         </p>
                                     )}
                                     {aiError && (
@@ -637,7 +704,7 @@ export default function MyAreaPage() {
                                         boxShadow: theme.shadows.sm
                                     }}>
                                         <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "0 0 0.75rem", fontSize: "1rem" }}>
-                                            💡 Proposed Solution
+                                            <FontAwesomeIcon icon={Icons.lightbulb} /> Proposed Solution
                                         </h3>
                                         <p style={{ margin: 0, lineHeight: 1.6, fontSize: "0.9rem" }}>{aiInsight.proposedSolution}</p>
 
@@ -671,7 +738,7 @@ export default function MyAreaPage() {
                                             background: theme.colors.surfaceHover,
                                             fontSize: "0.8rem"
                                         }}>
-                                            <strong>📍 Found {pois.length} infrastructure points nearby</strong>
+                                            <strong><FontAwesomeIcon icon={Icons.mapPin} /> Found {pois.length} infrastructure points nearby</strong>
                                             <div style={{ color: theme.colors.text.muted, marginTop: "0.25rem" }}>
                                                 Shown on map as icons
                                             </div>
@@ -691,6 +758,181 @@ export default function MyAreaPage() {
 
                 </div>
             </div>
+
+            {/* Safe Places Modal */}
+            {showSafePlacesModal && (
+                <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2000,
+                    animation: "fadeIn 0.2s ease"
+                }}>
+                    <div style={{
+                        backgroundColor: "white",
+                        borderRadius: "20px",
+                        width: "90%",
+                        maxWidth: "500px",
+                        maxHeight: "80vh",
+                        overflow: "hidden",
+                        boxShadow: "0 25px 50px rgba(0,0,0,0.25)"
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: "1.5rem",
+                            background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                            color: "white",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center"
+                        }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 800 }}>
+                                    <FontAwesomeIcon icon={Icons.shieldHalved} /> Nearby Safe Places
+                                </h2>
+                                <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", opacity: 0.9 }}>
+                                    {nearbySafePlaces.length} locations found
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowSafePlacesModal(false)}
+                                style={{
+                                    background: "rgba(255,255,255,0.2)",
+                                    border: "none",
+                                    borderRadius: "50%",
+                                    width: "36px",
+                                    height: "36px",
+                                    color: "white",
+                                    fontSize: "1.25rem",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{ padding: "1rem", maxHeight: "60vh", overflowY: "auto" }}>
+                            {safePlacesLoading ? (
+                                <div style={{ padding: "2rem", textAlign: "center", color: theme.colors.text.muted }}>
+                                    Loading safe places...
+                                </div>
+                            ) : nearbySafePlaces.length === 0 ? (
+                                <div style={{ padding: "2rem", textAlign: "center", color: theme.colors.text.muted }}>
+                                    No safe places found. Admin needs to add locations.
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                                    {nearbySafePlaces.map((place) => (
+                                        <div
+                                            key={place.id}
+                                            style={{
+                                                padding: "1rem",
+                                                borderRadius: "12px",
+                                                border: `1px solid ${theme.colors.border}`,
+                                                backgroundColor: "white",
+                                                transition: "all 0.2s"
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                                                <div style={{
+                                                    width: "44px",
+                                                    height: "44px",
+                                                    borderRadius: "10px",
+                                                    background: "linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    fontSize: "1.5rem",
+                                                    flexShrink: 0
+                                                }}>
+                                                    {SAFE_PLACE_TYPES[place.type]?.icon || "📍"}
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{
+                                                        fontWeight: 700,
+                                                        fontSize: "0.95rem",
+                                                        color: theme.colors.text.primary,
+                                                        marginBottom: "0.25rem"
+                                                    }}>
+                                                        {place.name}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: "0.75rem",
+                                                        color: theme.colors.text.muted,
+                                                        textTransform: "uppercase",
+                                                        fontWeight: 600,
+                                                        marginBottom: "0.5rem"
+                                                    }}>
+                                                        {SAFE_PLACE_TYPES[place.type]?.label || place.type}
+                                                    </div>
+                                                    {place.address && (
+                                                        <div style={{ fontSize: "0.8rem", color: theme.colors.text.secondary, marginBottom: "0.25rem" }}>
+                                                            📍 {place.address}
+                                                        </div>
+                                                    )}
+                                                    {place.phone && (
+                                                        <a
+                                                            href={`tel:${place.phone}`}
+                                                            style={{
+                                                                fontSize: "0.8rem",
+                                                                color: theme.colors.primary,
+                                                                textDecoration: "none",
+                                                                display: "block",
+                                                                marginBottom: "0.25rem"
+                                                            }}
+                                                        >
+                                                            📞 {place.phone}
+                                                        </a>
+                                                    )}
+                                                    <div style={{
+                                                        display: "flex",
+                                                        gap: "0.5rem",
+                                                        marginTop: "0.5rem",
+                                                        flexWrap: "wrap"
+                                                    }}>
+                                                        <span style={{
+                                                            fontSize: "0.7rem",
+                                                            padding: "3px 8px",
+                                                            borderRadius: "20px",
+                                                            backgroundColor: "#dbeafe",
+                                                            color: "#1e40af",
+                                                            fontWeight: 600
+                                                        }}>
+                                                            📏 {place.distance < 1000 ? `${place.distance}m` : `${(place.distance / 1000).toFixed(1)}km`}
+                                                        </span>
+                                                        {place.is24Hours && (
+                                                            <span style={{
+                                                                fontSize: "0.7rem",
+                                                                padding: "3px 8px",
+                                                                borderRadius: "20px",
+                                                                backgroundColor: "#dcfce7",
+                                                                color: "#166534",
+                                                                fontWeight: 600
+                                                            }}>
+                                                                ✓ 24 Hours
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

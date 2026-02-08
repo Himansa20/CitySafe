@@ -5,7 +5,8 @@ import { createSOSAlert, cancelSOSAlert, subscribeUserSOSAlerts } from "../servi
 import type { SOSAlert, SOSAlertType } from "../types/sosAlert";
 import { SOS_TYPE_INFO } from "../types/sosAlert";
 import { theme } from "../theme";
-import { Icon, Icons } from "../icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Icons } from '../icons';
 
 type ModalState = "closed" | "type-select" | "confirming" | "active" | "error";
 
@@ -189,7 +190,7 @@ export default function SOSButton() {
                     </svg>
                 )}
                 <span style={{ position: "relative", zIndex: 1 }}>
-                    {activeAlert ? "🆘" : "SOS"}
+                    {activeAlert ? <FontAwesomeIcon icon={Icons.sos} /> : "SOS"}
                 </span>
             </button>
 
@@ -226,7 +227,7 @@ export default function SOSButton() {
                                     textAlign: "center",
                                     marginBottom: "1.5rem"
                                 }}>
-                                    <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>🆘</div>
+                                    <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}><FontAwesomeIcon icon={Icons.sos} style={{ color: theme.colors.status.danger }} /></div>
                                     <h2 style={{
                                         margin: 0,
                                         fontSize: theme.typography.sizes.xl,
@@ -270,7 +271,7 @@ export default function SOSButton() {
                                                     gap: "0.5rem",
                                                 }}
                                             >
-                                                <span style={{ fontSize: "1.5rem" }}>{info.icon}</span>
+                                                <span style={{ fontSize: "1.5rem" }}><FontAwesomeIcon icon={info.icon} /></span>
                                                 <span style={{
                                                     fontSize: theme.typography.sizes.xs,
                                                     fontWeight: 600,
@@ -304,7 +305,7 @@ export default function SOSButton() {
                                         fontSize: theme.typography.sizes.sm,
                                         color: "#92400e"
                                     }}>
-                                        <Icon icon={Icons.alert} size="0.875rem" color="#92400e" /> Location access required for SOS
+                                        <FontAwesomeIcon icon={Icons.safety} /> Location access required for SOS
                                     </div>
                                 )}
 
@@ -329,7 +330,7 @@ export default function SOSButton() {
                                             opacity: geo.lat === null ? 0.5 : 1,
                                         }}
                                     >
-                                        <Icon icon={Icons.bell} size="0.875rem" /> Send SOS
+                                        <FontAwesomeIcon icon={Icons.alert} /> Send SOS
                                     </button>
                                 </div>
                             </>
@@ -375,7 +376,7 @@ export default function SOSButton() {
                                         animation: "pulse 2s infinite",
                                     }}>
                                         <span style={{ fontSize: "2.5rem" }}>
-                                            {SOS_TYPE_INFO[activeAlert.type].icon}
+                                            <FontAwesomeIcon icon={SOS_TYPE_INFO[activeAlert.type].icon} />
                                         </span>
                                     </div>
                                     <h2 style={{
@@ -433,7 +434,7 @@ export default function SOSButton() {
                                             Location shared
                                         </span>
                                         <span style={{ fontWeight: 600, color: theme.colors.status.success }}>
-                                            <Icon icon={Icons.check} size="0.75rem" /> Yes
+                                            <FontAwesomeIcon icon={Icons.check} /> Yes
                                         </span>
                                     </div>
                                 </div>
@@ -468,7 +469,7 @@ export default function SOSButton() {
                         {modalState === "error" && (
                             <>
                                 <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                                    <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>❌</div>
+                                    <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}><FontAwesomeIcon icon={Icons.xmark} style={{ color: theme.colors.status.danger }} /></div>
                                     <h2 style={{
                                         margin: 0,
                                         fontSize: theme.typography.sizes.lg,

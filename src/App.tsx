@@ -14,6 +14,7 @@ import MyAreaPage from "./pages/MyAreaPage";
 import "./leafletFix";
 import NightSafety from "./pages/NightSafety";
 import NightSafetyAdmin from "./pages/NightSafetyAdmin";
+import SafePlacesAdmin from "./pages/SafePlacesAdmin";
 
 
 import ProximityMonitor from "./components/ProximityMonitor";
@@ -84,6 +85,15 @@ export default function App() {
           element={
             <RequireRole roles={["ngo", "admin"]}>
               <NightSafetyAdmin />
+            </RequireRole>
+          }
+        />
+
+        <Route
+          path="/safe-places-admin"
+          element={
+            <RequireRole roles={["ngo", "admin"]}>
+              <SafePlacesAdmin />
             </RequireRole>
           }
         />

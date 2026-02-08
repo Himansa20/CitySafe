@@ -2,8 +2,9 @@ import { Link } from "react-router-dom";
 import type { Signal } from "../types/signal";
 import ConfirmButton from "./ConfirmButton";
 import { getPriorityBadge } from "../utils/scoring";
-import { theme } from "../theme";
-import { getCategoryIcon, Icon, Icons } from "../icons";
+import { theme, CATEGORY_ICONS } from "../theme";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Icons } from '../icons';
 
 function PriorityBadge({ score }: { score: number }) {
   const b = getPriorityBadge(score);
@@ -72,7 +73,7 @@ export default function SignalList({ signals }: { signals: Signal[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
       {signals.map((s) => {
-        const icon = getCategoryIcon(s.category, "1.25rem");
+        const icon = CATEGORY_ICONS[s.category] || Icons.mapPin;
 
         return (
           <div
@@ -111,7 +112,7 @@ export default function SignalList({ signals }: { signals: Signal[] }) {
                   backgroundColor: theme.colors.bg,
                   borderRadius: theme.rounded.lg
                 }}>
-                  {icon}
+                  <FontAwesomeIcon icon={icon} />
                 </span>
                 <div>
                   <div style={{
@@ -158,19 +159,19 @@ export default function SignalList({ signals }: { signals: Signal[] }) {
               marginBottom: "0.75rem"
             }}>
               <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <Icon icon={Icons.users} size="0.75rem" /> {s.confirmationsCount ?? 0} confirmed
+                <FontAwesomeIcon icon={Icons.users} /> {s.confirmationsCount ?? 0} confirmed
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <Icon icon={Icons.bolt} size="0.75rem" /> Severity {s.severity}/5
+                <FontAwesomeIcon icon={Icons.bolt} /> Severity {s.severity}/5
               </span>
               {s.hasLocalPhoto && (
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Icon icon={Icons.camera} size="0.75rem" /> Photo
+                  <FontAwesomeIcon icon={Icons.camera} /> Photo
                 </span>
               )}
               {s.affectedGroups.length > 0 && (
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Icon icon={Icons.bullseye} size="0.75rem" /> {s.affectedGroups.slice(0, 2).join(", ")}
+                  <FontAwesomeIcon icon={Icons.target} /> {s.affectedGroups.slice(0, 2).join(", ")}
                   {s.affectedGroups.length > 2 && ` +${s.affectedGroups.length - 2}`}
                 </span>
               )}

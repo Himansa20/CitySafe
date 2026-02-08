@@ -1,24 +1,24 @@
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { theme } from "../theme";
-import { Icon, Icons } from "../icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { Icons } from '../icons';
 
 type NavItem = {
     label: string;
     path: string;
-    icon?: string;
-    iconComponent?: ReactNode;
+    icon?: IconDefinition;
     description?: string;
 };
 
 type Props = {
     label: string;
     items: NavItem[];
-    icon?: string;
-    iconComponent?: ReactNode;
+    icon?: IconDefinition;
 };
 
-export default function NavDropdown({ label, items, icon, iconComponent }: Props) {
+export default function NavDropdown({ label, items, icon }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
@@ -68,18 +68,16 @@ export default function NavDropdown({ label, items, icon, iconComponent }: Props
                     e.currentTarget.style.backgroundColor = "transparent";
                 }}
             >
-                {iconComponent || (icon && <span>{icon}</span>)}
+                {icon && <span><FontAwesomeIcon icon={icon} /></span>}
                 {label}
                 <span
                     style={{
                         transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                         transition: "transform 0.2s",
                         fontSize: "0.6rem",
-                        display: "flex",
-                        alignItems: "center",
                     }}
                 >
-                    <Icon icon={Icons.chevronDown} size="0.6rem" />
+                    ▼
                 </span>
             </button>
 
@@ -124,9 +122,9 @@ export default function NavDropdown({ label, items, icon, iconComponent }: Props
                                     if (!itemActive) e.currentTarget.style.backgroundColor = "transparent";
                                 }}
                             >
-                                {(item.iconComponent || item.icon) && (
-                                    <span style={{ fontSize: "1.1rem", width: "24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                        {item.iconComponent || item.icon}
+                                {item.icon && (
+                                    <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <FontAwesomeIcon icon={item.icon} />
                                     </span>
                                 )}
                                 <div style={{ flex: 1 }}>
@@ -146,7 +144,7 @@ export default function NavDropdown({ label, items, icon, iconComponent }: Props
                                     )}
                                 </div>
                                 {itemActive && (
-                                    <span style={{ color: theme.colors.primary, fontSize: "0.8rem", display: "flex", alignItems: "center" }}><Icon icon={Icons.check} size="0.8rem" /></span>
+                                    <FontAwesomeIcon icon={Icons.check} style={{ color: theme.colors.primary, fontSize: '0.8rem' }} />
                                 )}
                             </Link>
                         );

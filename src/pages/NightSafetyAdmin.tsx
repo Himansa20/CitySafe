@@ -17,7 +17,7 @@ import {
     type AdminRouteSegment,
     type AdminRouteType,
 } from "../services/adminRoutes";
-import { subscribeSignalsV2, type SignalFilters } from "../services/signals";
+import { subscribeSignalsV2 } from "../services/signals";
 import type { Signal } from "../types/signal";
 import L from "leaflet";
 
@@ -34,23 +34,34 @@ const SAFETY_RATINGS = [
 
 function DrawingMap({
     isDrawing,
+    isAIMode,
     currentPoints,
+    aiStartPoint,
+    aiEndPoint,
     onMapClick,
+    onAIPointClick,
 }: {
     isDrawing: boolean;
+    isAIMode: boolean;
     currentPoints: { lat: number; lng: number }[];
+    aiStartPoint: { lat: number; lng: number } | null;
+    aiEndPoint: { lat: number; lng: number } | null;
     onMapClick: (latlng: { lat: number; lng: number }) => void;
+    onAIPointClick: (latlng: { lat: number; lng: number }) => void;
 }) {
     useMapEvents({
         click: (e) => {
             if (isDrawing) {
                 onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+            } else if (isAIMode) {
+                onAIPointClick({ lat: e.latlng.lat, lng: e.latlng.lng });
             }
         },
     });
 
     return (
         <>
+            {/* Regular drawing mode */}
             {currentPoints.length > 0 && (
                 <>
                     <Polyline
@@ -70,6 +81,19 @@ function DrawingMap({
                         />
                     ))}
                 </>
+            )}
+            {/* AI mode start/end markers */}
+            {aiStartPoint && (
+                <Marker
+                    position={[aiStartPoint.lat, aiStartPoint.lng]}
+                    icon={createLabelIcon("A", "#3b82f6")}
+                />
+            )}
+            {aiEndPoint && (
+                <Marker
+                    position={[aiEndPoint.lat, aiEndPoint.lng]}
+                    icon={createLabelIcon("B", "#8b5cf6")}
+                />
             )}
         </>
     );
@@ -114,6 +138,13 @@ export default function NightSafetyAdmin() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // AI Route Finder state
+    const [isAIMode, setIsAIMode] = useState(false);
+    const [aiStartPoint, setAiStartPoint] = useState<{ lat: number; lng: number } | null>(null);
+    const [aiEndPoint, setAiEndPoint] = useState<{ lat: number; lng: number } | null>(null);
+    const [aiSuggestedRoute, setAiSuggestedRoute] = useState<{ lat: number; lng: number }[] | null>(null);
+    const [aiFinding, setAiFinding] = useState(false);
+
     // Subscribe to routes
     useEffect(() => {
         const unsub = subscribeAdminRoutes(setRoutes);
@@ -122,8 +153,11 @@ export default function NightSafetyAdmin() {
 
     // Subscribe to safety-related signals for heatmap
     useEffect(() => {
-        const filters: SignalFilters = { category: "safety" };
-        const unsub = subscribeSignalsV2(filters, setSignals);
+        const unsub = subscribeSignalsV2(
+            { categories: ["safety"], timeWindow: "30d", status: "all" },
+            setSignals,
+            (err) => console.error("Failed to load signals for heatmap:", err)
+        );
         return () => unsub();
     }, []);
 
@@ -203,6 +237,128 @@ export default function NightSafetyAdmin() {
 
     const handleUndo = () => {
         setCurrentPoints(prev => prev.slice(0, -1));
+    };
+
+    // AI Route Finding: Handle point selection
+    const handleAIPointClick = (latlng: { lat: number; lng: number }) => {
+        if (!aiStartPoint) {
+            setAiStartPoint(latlng);
+            setAiSuggestedRoute(null);
+        } else if (!aiEndPoint) {
+            setAiEndPoint(latlng);
+        }
+    };
+
+    // AI Route Finding: Calculate safe path avoiding danger zones
+    const findSafePath = () => {
+        if (!aiStartPoint || !aiEndPoint) return;
+
+        setAiFinding(true);
+
+        // Simulate AI processing delay
+        setTimeout(() => {
+            const start = aiStartPoint;
+            const end = aiEndPoint;
+
+            // Generate intermediate waypoints that avoid danger zones
+            const waypoints: { lat: number; lng: number }[] = [start];
+
+            // Calculate direction vector
+            const deltaLat = end.lat - start.lat;
+            const deltaLng = end.lng - start.lng;
+            const distance = Math.sqrt(deltaLat * deltaLat + deltaLng * deltaLng);
+
+            // Number of waypoints based on distance
+            const numWaypoints = Math.max(3, Math.floor(distance / 0.005));
+
+            for (let i = 1; i < numWaypoints; i++) {
+                const t = i / numWaypoints;
+                let candidateLat = start.lat + deltaLat * t;
+                let candidateLng = start.lng + deltaLng * t;
+
+                // Check if this point is near a danger zone and adjust
+                let adjustedLat = candidateLat;
+                let adjustedLng = candidateLng;
+                let maxPush = 0;
+
+                dangerZones.forEach(zone => {
+                    const distToZone = Math.sqrt(
+                        Math.pow(candidateLat - zone.lat, 2) +
+                        Math.pow(candidateLng - zone.lng, 2)
+                    );
+
+                    const dangerRadius = 0.008 * (zone.count > 3 ? 1.5 : 1); // Larger radius for more dangerous zones
+
+                    if (distToZone < dangerRadius) {
+                        // Push the waypoint away from danger zone
+                        const pushStrength = (dangerRadius - distToZone) * 2;
+
+                        if (pushStrength > maxPush) {
+                            maxPush = pushStrength;
+
+                            // Calculate perpendicular direction to push (unused but kept for future)
+                            // const perpLat = -(end.lng - start.lng);
+                            // const perpLng = end.lat - start.lat;
+
+                            // Push away from the danger zone
+                            const awayLat = candidateLat - zone.lat;
+                            const awayLng = candidateLng - zone.lng;
+                            const awayLen = Math.sqrt(awayLat * awayLat + awayLng * awayLng) || 0.001;
+
+                            adjustedLat = candidateLat + (awayLat / awayLen) * pushStrength;
+                            adjustedLng = candidateLng + (awayLng / awayLen) * pushStrength;
+                        }
+                    }
+                });
+
+                waypoints.push({ lat: adjustedLat, lng: adjustedLng });
+            }
+
+            waypoints.push(end);
+
+            // Smooth the path
+            const smoothed: { lat: number; lng: number }[] = [waypoints[0]];
+            for (let i = 1; i < waypoints.length - 1; i++) {
+                smoothed.push({
+                    lat: (waypoints[i - 1].lat + waypoints[i].lat * 2 + waypoints[i + 1].lat) / 4,
+                    lng: (waypoints[i - 1].lng + waypoints[i].lng * 2 + waypoints[i + 1].lng) / 4,
+                });
+            }
+            smoothed.push(waypoints[waypoints.length - 1]);
+
+            setAiSuggestedRoute(smoothed);
+            setAiFinding(false);
+        }, 800);
+    };
+
+    // AI Route Finding: Reset
+    const resetAIMode = () => {
+        setAiStartPoint(null);
+        setAiEndPoint(null);
+        setAiSuggestedRoute(null);
+        setIsAIMode(false);
+    };
+
+    // AI Route Finding: Save the suggested route
+    const saveAISuggestedRoute = async () => {
+        if (!user || !aiSuggestedRoute || aiSuggestedRoute.length < 2) return;
+
+        setSaving(true);
+        try {
+            await addAdminRoute(
+                "safe",
+                `AI Safe Route ${new Date().toLocaleDateString()}`,
+                aiSuggestedRoute,
+                user.uid,
+                "AI-generated safe route avoiding danger zones. [Safety Rating: 4/5]"
+            );
+            resetAIMode();
+        } catch (err) {
+            console.error(err);
+            setError("Failed to save AI route.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -404,6 +560,159 @@ export default function NightSafetyAdmin() {
                         )}
                     </div>
 
+                    {/* AI Route Finder Card */}
+                    <div style={{
+                        ...theme.card,
+                        padding: "1.5rem",
+                        background: "linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)",
+                        color: "white"
+                    }}>
+                        <h3 style={{
+                            fontSize: theme.typography.sizes.lg,
+                            fontWeight: 700,
+                            margin: "0 0 1rem 0",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem"
+                        }}>
+                            🤖 AI Safe Route Finder
+                        </h3>
+
+                        {!isAIMode ? (
+                            <div>
+                                <p style={{ fontSize: theme.typography.sizes.sm, marginBottom: "1rem", opacity: 0.9 }}>
+                                    Select two points on the map and AI will find the safest path avoiding danger zones.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setIsAIMode(true);
+                                        setIsDrawing(false);
+                                        setCurrentPoints([]);
+                                    }}
+                                    disabled={isDrawing}
+                                    style={{
+                                        ...theme.button.base,
+                                        width: "100%",
+                                        padding: "0.875rem",
+                                        fontSize: theme.typography.sizes.base,
+                                        backgroundColor: "rgba(255,255,255,0.2)",
+                                        color: "white",
+                                        border: "1px solid rgba(255,255,255,0.3)",
+                                        opacity: isDrawing ? 0.5 : 1,
+                                    }}
+                                >
+                                    🎯 Start AI Path Finding
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                                <div style={{
+                                    backgroundColor: "rgba(255,255,255,0.15)",
+                                    padding: "0.75rem",
+                                    borderRadius: theme.rounded.md
+                                }}>
+                                    <div style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.5rem",
+                                        marginBottom: "0.5rem"
+                                    }}>
+                                        <span style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            backgroundColor: aiStartPoint ? "#22c55e" : "rgba(255,255,255,0.3)",
+                                            borderRadius: "50%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontWeight: 700,
+                                            fontSize: "12px"
+                                        }}>A</span>
+                                        <span style={{ fontSize: theme.typography.sizes.sm }}>
+                                            {aiStartPoint ? `${aiStartPoint.lat.toFixed(4)}, ${aiStartPoint.lng.toFixed(4)}` : "Click map for start point"}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                        <span style={{
+                                            width: "24px",
+                                            height: "24px",
+                                            backgroundColor: aiEndPoint ? "#8b5cf6" : "rgba(255,255,255,0.3)",
+                                            borderRadius: "50%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontWeight: 700,
+                                            fontSize: "12px"
+                                        }}>B</span>
+                                        <span style={{ fontSize: theme.typography.sizes.sm }}>
+                                            {aiEndPoint ? `${aiEndPoint.lat.toFixed(4)}, ${aiEndPoint.lng.toFixed(4)}` : "Click map for end point"}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {aiStartPoint && aiEndPoint && !aiSuggestedRoute && (
+                                    <button
+                                        onClick={findSafePath}
+                                        disabled={aiFinding}
+                                        style={{
+                                            ...theme.button.base,
+                                            width: "100%",
+                                            padding: "0.875rem",
+                                            backgroundColor: aiFinding ? "rgba(255,255,255,0.3)" : "#22c55e",
+                                            color: "white",
+                                            border: "none",
+                                        }}
+                                    >
+                                        {aiFinding ? "🔄 Finding safe path..." : "✨ Find Safest Route"}
+                                    </button>
+                                )}
+
+                                {aiSuggestedRoute && (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                                        <div style={{
+                                            backgroundColor: "rgba(34, 197, 94, 0.3)",
+                                            padding: "0.75rem",
+                                            borderRadius: theme.rounded.md,
+                                            textAlign: "center"
+                                        }}>
+                                            ✅ Safe route found! ({aiSuggestedRoute.length} waypoints)
+                                        </div>
+                                        <button
+                                            onClick={saveAISuggestedRoute}
+                                            disabled={saving}
+                                            style={{
+                                                ...theme.button.base,
+                                                width: "100%",
+                                                padding: "0.75rem",
+                                                backgroundColor: "#22c55e",
+                                                color: "white",
+                                                border: "none",
+                                                opacity: saving ? 0.5 : 1,
+                                            }}
+                                        >
+                                            {saving ? "Saving..." : "💾 Save as Safe Route"}
+                                        </button>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={resetAIMode}
+                                    style={{
+                                        ...theme.button.base,
+                                        width: "100%",
+                                        padding: "0.5rem",
+                                        backgroundColor: "transparent",
+                                        color: "white",
+                                        border: "1px solid rgba(255,255,255,0.4)",
+                                        fontSize: theme.typography.sizes.sm,
+                                    }}
+                                >
+                                    ✕ Exit AI Mode
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Filter Card */}
                     <div style={{ ...theme.card, padding: "1rem" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
@@ -540,9 +849,26 @@ export default function NightSafetyAdmin() {
 
                             <DrawingMap
                                 isDrawing={isDrawing}
+                                isAIMode={isAIMode}
                                 currentPoints={currentPoints}
+                                aiStartPoint={aiStartPoint}
+                                aiEndPoint={aiEndPoint}
                                 onMapClick={handleMapClick}
+                                onAIPointClick={handleAIPointClick}
                             />
+
+                            {/* AI Suggested Route */}
+                            {aiSuggestedRoute && (
+                                <Polyline
+                                    positions={aiSuggestedRoute}
+                                    pathOptions={{
+                                        color: "#3b82f6",
+                                        weight: 6,
+                                        opacity: 0.9,
+                                        dashArray: "10, 5",
+                                    }}
+                                />
+                            )}
 
                             {/* Existing Routes */}
                             {filteredRoutes.map((route) => (

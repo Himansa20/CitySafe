@@ -1,4 +1,14 @@
 import type { CSSProperties } from "react";
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import {
+    faTrash,
+    faTriangleExclamation,
+    faBus,
+    faWater,
+    faWheelchair,
+    faTree,
+    faCircle,
+} from '@fortawesome/free-solid-svg-icons';
 
 export const theme = {
     colors: {
@@ -260,6 +270,20 @@ export const theme = {
     }
 };
 
-// Note: Category and status icon mappings are now in icons.tsx
-// Use getCategoryIcon() and getStatusIcon() from icons.tsx for icon components
+// Category icon mapping for visual enhancement (now uses Font Awesome icons)
+export const CATEGORY_ICONS: Record<string, IconDefinition> = {
+    waste: faTrash,
+    safety: faTriangleExclamation,
+    transport: faBus,
+    flooding: faWater,
+    accessibility: faWheelchair,
+    public_space: faTree,
+};
 
+// Status icon mapping (using faCircle with different colors applied via CSS)
+export const STATUS_ICONS: Record<string, IconDefinition> = {
+    new: faCircle,
+    in_progress: faCircle,
+    resolved: faCircle,
+    rejected: faCircle,
+};

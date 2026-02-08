@@ -52,6 +52,20 @@ import {
   faLock,
   faRoute,
   faCircleInfo,
+  faLifeRing,
+  faCircleQuestion,
+  faDoorOpen,
+  faChartSimple,
+  faClock,
+  faRobot,
+  faBuilding,
+  faHouseChimneyMedical,
+  faThermometer,
+  faLocationCrosshairs,
+  faMapLocationDot,
+  faBarsProgress,
+  faXmark,
+  faChartLine,
 } from '@fortawesome/free-solid-svg-icons';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { CSSProperties } from 'react';
@@ -145,6 +159,24 @@ export const Icons = {
   lock: faLock,
   route: faRoute,
   info: faCircleInfo,
+
+  // SOS Types
+  medical: faHouseChimneyMedical,
+  sos: faLifeRing,
+  questionMark: faCircleQuestion,
+
+  // Navigation & UI
+  doorOpen: faDoorOpen,
+  chartSimple: faChartSimple,
+  clock: faClock,
+  robot: faRobot,
+  building: faBuilding,
+  thermometer: faThermometer,
+  locationCrosshairs: faLocationCrosshairs,
+  mapLocationDot: faMapLocationDot,
+  barsProgress: faBarsProgress,
+  xmark: faXmark,
+  chartLine: faChartLine,
 };
 
 // Category icon mapping for visual enhancement (returns icon definition)
